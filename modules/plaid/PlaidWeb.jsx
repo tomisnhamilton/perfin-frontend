@@ -1,3 +1,4 @@
-// modules/plaid/PlaidWeb.tsx
+// modules/plaid/PlaidWeb.jsx
 import { PlaidLink } from 'react-plaid-link';
+
 export default PlaidLink;
