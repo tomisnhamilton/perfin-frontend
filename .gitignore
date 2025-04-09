@@ -3,10 +3,6 @@
 # dependencies
 node_modules/
 
-# IDE
-.idea
-.vscode
-
 # Expo
 .expo/
 dist/
@@ -33,7 +29,7 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local .env files
+# local env files
 .env*.local
 
 # typescript
@@ -42,4 +38,5 @@ yarn-error.*
 app-example
 
 # Environment
+.env
 .env
