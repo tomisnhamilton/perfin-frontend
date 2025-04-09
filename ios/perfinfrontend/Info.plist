@@ -27,8 +27,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>myapp</string>
-          <string>perfin-ios</string>
+          <string>perfin</string>
+          <string>com.cyberbeans.perfin</string>
         </array>
       </dict>
       <dict>

@@ -1,4 +1,4 @@
-package com.perfinios
+package com.cyberbeans.perfin
 
 import android.app.Application
 import android.content.res.Configuration

@@ -1,4 +1,4 @@
-package com.perfinios
+package com.cyberbeans.perfin
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
