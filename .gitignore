@@ -37,6 +37,10 @@ yarn-error.*
 
 app-example
 
+# IDE
+.idea/
+.vscode/
+
 # Environment
 .env
 .env
