@@ -33,7 +33,7 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env.js files
+# local .env files
 .env*.local
 
 # typescript
@@ -42,5 +42,4 @@ yarn-error.*
 app-example
 
 # Environment
-utils/env.js
 .env
