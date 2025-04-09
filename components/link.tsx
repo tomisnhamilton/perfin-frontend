@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import PlaidLink from '../components/PlaidLink';
+import PlaidLink from '@/components/PlaidLink';
 
 export default function LinkScreen() {
     return (

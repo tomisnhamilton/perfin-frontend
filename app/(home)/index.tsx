@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import LinkScreen from "@/app/link";
+import LinkScreen from "@/components/link";
 
 
 

@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "perfin-ios",
+      "bundleIdentifier": "com.cyberbeans.perfin",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -20,7 +20,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.perfinios"
+      "package": "com.cyberbeans.perfin"
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +49,7 @@
       "eas": {
         "projectId": "536617d1-fc22-4ba3-b05f-2fa91becc344"
       }
-    }
+    },
+    "owner": "cyberbeans"
   }
 }
