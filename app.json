@@ -5,19 +5,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "perfin",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tomisnhamilton.perfin-frontend"
+      "bundleIdentifier": "com.cyberbeans.perfin"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.tomisnhamilton.perfinfrontend"
+      "package": "com.cyberbeans.perfin"
     },
     "web": {
       "bundler": "metro",
