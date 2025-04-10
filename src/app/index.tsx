@@ -1,3 +1,4 @@
+import React from "react";
 import { View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { ScreenLayout } from "@/components/layouts/ScreenLayout";
@@ -10,8 +11,7 @@ export default function Index() {
 
     const handleGetStarted = () => {
         console.log("Get Started pressed");
-        // You can implement this once you have tabs setup
-        // router.push("/(tabs)/dashboard");
+        router.push("/(tabs)/dashboard");
     };
 
     return (
