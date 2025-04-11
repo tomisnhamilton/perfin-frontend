@@ -13,12 +13,27 @@ export const getLinkToken = async () => {
 
         const response = await fetch(`${API_BASE_URL}/create_link_token`);
 
+        // Log more details about the response
+        console.log('Response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`Failed to get link token: ${response.status}`);
+            // Try to get error details from the response
+            let errorMsg = `Failed to get link token: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                console.log('Error details from server:', errorData);
+                if (errorData.error) {
+                    errorMsg += ` - ${errorData.error}`;
+                }
+            } catch (e) {
+                console.log('Could not parse error response:', e);
+            }
+
+            throw new Error(errorMsg);
         }
 
         const data = await response.json();
-        console.log('Successfully received link token');
+        console.log('Successfully received link token:', data.link_token ? 'Token received' : 'No token in response');
         return data.link_token;
     } catch (error) {
         console.error('Error getting link token:', error);

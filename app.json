@@ -10,14 +10,29 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cyberbeans.perfin"
+      "bundleIdentifier": "com.cyberbeans.perfin",
+      "associatedDomains": ["applinks:cdn.plaid.com"]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cyberbeans.perfin"
+      "package": "com.cyberbeans.perfin",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "cdn.plaid.com",
+              "pathPrefix": "/link/v2/stable"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

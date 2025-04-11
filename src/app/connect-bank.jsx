@@ -1,10 +1,10 @@
 // src/app/connect-bank.jsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { View, Text, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import * as apiService from '@/services/apiService';
 
 export default function ConnectBankScreen() {
@@ -12,9 +12,9 @@ export default function ConnectBankScreen() {
     const [linkToken, setLinkToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [showWebView, setShowWebView] = useState(false);
+    const [processingToken, setProcessingToken] = useState(false);
 
-    // Fetch the link token from our backend
+    // Fetch link token on component mount
     useEffect(() => {
         async function fetchLinkToken() {
             try {
@@ -32,73 +32,87 @@ export default function ConnectBankScreen() {
         fetchLinkToken();
     }, []);
 
-    // Handle WebView messages
-    const handleMessage = async (event) => {
+    // Function to handle opening Plaid in Web Only mode
+    const openPlaidLink = async () => {
+        if (!linkToken) {
+            setError('No link token available');
+            return;
+        }
+
         try {
-            console.log('Received message from WebView');
-            const data = JSON.parse(event.nativeEvent.data);
+            // The URL for Plaid Link Web Only mode
+            const plaidUrl = `https://cdn.plaid.com/link/v2/stable/link.html?token=${linkToken}`;
 
-            if (data.action === 'EXIT') {
-                console.log('User exited Plaid Link flow');
-                setShowWebView(false);
-                router.back();
-            } else if (data.action === 'SUCCESS') {
-                console.log('Successfully connected bank account');
-                const { publicToken, metadata } = data;
+            console.log('Opening Plaid Link Web Only URL:', plaidUrl);
 
+            // Open the URL in a web browser and wait for result
+            const result = await WebBrowser.openAuthSessionAsync(plaidUrl);
+
+            console.log('WebBrowser result:', result.type);
+
+            // Handle the response based on the result type
+            if (result.type === 'success') {
+                // Extract public_token from the URL
                 try {
-                    await apiService.exchangePublicToken(publicToken);
-                    console.log('Public token exchanged successfully');
+                    const url = new URL(result.url);
+                    const publicToken = url.searchParams.get('public_token');
 
-                    // Navigate back to dashboard
-                    router.push('/(tabs)/dashboard');
-                } catch (error) {
-                    console.error('Error exchanging public token:', error);
-                    setError(`Failed to connect bank: ${error.message}`);
-                    setShowWebView(false);
+                    if (publicToken) {
+                        console.log('Public token received, handling success');
+                        await handleSuccess(publicToken);
+                    } else {
+                        console.log('No public token found in result URL');
+                        setError('No public token received from Plaid');
+                    }
+                } catch (err) {
+                    console.error('Error parsing result URL:', err);
+                    setError(`Failed to process Plaid response: ${err.message}`);
                 }
+            } else if (result.type === 'cancel') {
+                console.log('User canceled the Plaid flow');
+            } else {
+                console.log('WebBrowser session ended with type:', result.type);
             }
         } catch (err) {
-            console.error('Error handling WebView message:', err);
+            console.error('Error opening Plaid link:', err);
+            Alert.alert(
+                'Connection Error',
+                'Failed to connect to Plaid. Please try again later.',
+                [{ text: 'OK' }]
+            );
+            setError(`Failed to connect to Plaid: ${err.message}`);
         }
     };
 
-    // Show button to initiate Plaid Link
-    if (!showWebView && !loading && linkToken) {
-        return (
-            <ScreenLayout>
-                <Stack.Screen options={{ title: 'Connect Bank Account' }} />
-                <View className="flex-1 justify-center items-center p-4">
-                    <View className="bg-blue-50 dark:bg-blue-900 p-6 rounded-xl items-center mb-6 w-full">
-                        <Ionicons name="wallet-outline" size={40} color="#3b82f6" />
-                        <Text className="text-xl font-bold text-gray-800 dark:text-white mt-4 text-center">
-                            Connect Your Bank
-                        </Text>
-                        <Text className="text-gray-600 dark:text-gray-300 text-center mt-2">
-                            Link your bank account to track your transactions and balances in one place.
-                        </Text>
-                    </View>
+    // Handle successful link
+    const handleSuccess = async (publicToken) => {
+        try {
+            setProcessingToken(true);
+            console.log('Processing public token...');
 
-                    <TouchableOpacity
-                        className="py-3 px-6 bg-blue-600 dark:bg-blue-500 rounded-xl w-full items-center"
-                        onPress={() => setShowWebView(true)}
-                    >
-                        <Text className="text-white font-medium">Continue to Bank Selection</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScreenLayout>
-        );
-    }
+            // Exchange the public token
+            await apiService.exchangePublicToken(publicToken);
+            console.log('Public token exchanged successfully');
+
+            // Navigate back to dashboard
+            router.push('/(tabs)/dashboard');
+        } catch (error) {
+            console.error('Error exchanging public token:', error);
+            setError(`Failed to connect bank: ${error.message}`);
+        } finally {
+            setProcessingToken(false);
+        }
+    };
 
     // Show loading state
-    if (loading) {
+    if (loading || processingToken) {
         return (
             <ScreenLayout>
                 <Stack.Screen options={{ title: 'Connect Bank Account' }} />
                 <View className="flex-1 justify-center items-center">
                     <ActivityIndicator size="large" color="#3b82f6" />
                     <Text className="text-gray-600 dark:text-gray-300 mt-4">
-                        Initializing Plaid...
+                        {processingToken ? 'Connecting your account...' : 'Initializing Plaid...'}
                     </Text>
                 </View>
             </ScreenLayout>
@@ -125,85 +139,26 @@ export default function ConnectBankScreen() {
         );
     }
 
-    // Show Plaid Link WebView
-    if (showWebView && linkToken) {
-        // HTML to load Plaid Link in WebView
-        const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Plaid Link</title>
-        <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
-        <style>
-          body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-          }
-        </style>
-      </head>
-      <body>
-        <script>
-          const handler = Plaid.create({
-            token: '${linkToken}',
-            onSuccess: (public_token, metadata) => {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                action: 'SUCCESS',
-                publicToken: public_token,
-                metadata: metadata
-              }));
-            },
-            onExit: (err, metadata) => {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                action: 'EXIT',
-                error: err,
-                metadata: metadata
-              }));
-            },
-            onEvent: (eventName, metadata) => {
-              console.log('Plaid event:', eventName);
-            },
-          });
-          
-          // Open immediately
-          handler.open();
-        </script>
-      </body>
-      </html>
-    `;
-
-        return (
-            <View className="flex-1">
-                <Stack.Screen options={{ title: 'Connect Your Bank' }} />
-                <WebView
-                    originWhitelist={['*']}
-                    source={{ html }}
-                    onMessage={handleMessage}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    className="flex-1"
-                />
-            </View>
-        );
-    }
-
-    // Fallback
+    // Show connect button
     return (
         <ScreenLayout>
             <Stack.Screen options={{ title: 'Connect Bank Account' }} />
-            <View className="flex-1 justify-center items-center">
-                <Text className="text-gray-600 dark:text-gray-300">
-                    Unable to initialize Plaid Link.
-                </Text>
+            <View className="flex-1 justify-center items-center p-4">
+                <View className="bg-blue-50 dark:bg-blue-900 p-6 rounded-xl items-center mb-6 w-full">
+                    <Ionicons name="wallet-outline" size={40} color="#3b82f6" />
+                    <Text className="text-xl font-bold text-gray-800 dark:text-white mt-4 text-center">
+                        Connect Your Bank
+                    </Text>
+                    <Text className="text-gray-600 dark:text-gray-300 text-center mt-2">
+                        Link your bank account to track your transactions and balances in one place.
+                    </Text>
+                </View>
+
                 <TouchableOpacity
-                    className="mt-4 py-3 px-6 bg-blue-600 dark:bg-blue-500 rounded-xl"
-                    onPress={() => router.back()}
+                    className="py-3 px-6 bg-blue-600 dark:bg-blue-500 rounded-xl w-full items-center"
+                    onPress={openPlaidLink}
                 >
-                    <Text className="text-white font-medium">Go Back</Text>
+                    <Text className="text-white font-medium">Connect Bank Account</Text>
                 </TouchableOpacity>
             </View>
         </ScreenLayout>
