@@ -1,3 +1,4 @@
+// src/app/(tabs)/_layout.jsx
 import React from "react";
 import { Tabs } from "expo-router";
 import { useColorScheme } from "react-native";
@@ -39,16 +40,7 @@ export default function TabLayout() {
                 options={{
                     title: "Transactions",
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="wallet-outline" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="balance"
-                options={{
-                    title: "Balance",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="bar-chart-outline" size={size} color={color} />
+                        <Ionicons name="list-outline" size={size} color={color} />
                     ),
                 }}
             />

@@ -1,10 +1,12 @@
+// src/app/(tabs)/balance.jsx
 import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { ScreenLayout } from "@/components/layouts/ScreenLayout";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "react-native";
+import { useRouter } from "expo-router";
 
-// Mock accounts data
+// Mock accounts data - we'll replace this with real data later
 const ACCOUNTS = [
     {
         id: "1",
@@ -54,12 +56,19 @@ export default function BalanceScreen() {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === "dark";
     const [selectedPeriod, setSelectedPeriod] = useState("This Month");
+    const router = useRouter();
 
     // Calculate total balance
     const totalBalance = ACCOUNTS.reduce((sum, account) => sum + account.balance, 0);
 
+    // Handler for connecting bank account
+    const handleConnectBank = () => {
+        console.log('Connect Bank button pressed');
+        router.push('/connect-bank');
+    };
+
     // Get icon color based on account color and theme
-    const getIconColor = (color: string) => {
+    const getIconColor = (color) => {
         const colorMap = {
             blue: isDarkMode ? "#93c5fd" : "#3b82f6",
             green: isDarkMode ? "#86efac" : "#22c55e",
@@ -68,11 +77,11 @@ export default function BalanceScreen() {
             yellow: isDarkMode ? "#fde68a" : "#f59e0b",
             gray: isDarkMode ? "#9ca3af" : "#6b7280",
         };
-        return colorMap[color as keyof typeof colorMap] || colorMap.blue;
+        return colorMap[color] || colorMap.blue;
     };
 
     // Get background color for icon container
-    const getIconBgColor = (color: string) => {
+    const getIconBgColor = (color) => {
         const colorMap = {
             blue: isDarkMode ? "bg-blue-800" : "bg-blue-100",
             green: isDarkMode ? "bg-green-800" : "bg-green-100",
@@ -81,11 +90,11 @@ export default function BalanceScreen() {
             yellow: isDarkMode ? "bg-yellow-800" : "bg-yellow-100",
             gray: isDarkMode ? "bg-gray-700" : "bg-gray-200",
         };
-        return colorMap[color as keyof typeof colorMap] || colorMap.blue;
+        return colorMap[color] || colorMap.blue;
     };
 
     // Get progress bar background color
-    const getProgressBgColor = (color: string) => {
+    const getProgressBgColor = (color) => {
         const colorMap = {
             blue: isDarkMode ? "bg-blue-600" : "bg-blue-500",
             green: isDarkMode ? "bg-green-600" : "bg-green-500",
@@ -94,7 +103,7 @@ export default function BalanceScreen() {
             yellow: isDarkMode ? "bg-yellow-600" : "bg-yellow-500",
             gray: isDarkMode ? "bg-gray-600" : "bg-gray-500",
         };
-        return colorMap[color as keyof typeof colorMap] || colorMap.blue;
+        return colorMap[color] || colorMap.blue;
     };
 
     return (
@@ -125,7 +134,7 @@ export default function BalanceScreen() {
                     >
                         <View className={`h-12 w-12 rounded-full ${getIconBgColor(account.color)} items-center justify-center mr-4`}>
                             <Ionicons
-                                name={account.icon as any}
+                                name={account.icon}
                                 size={22}
                                 color={getIconColor(account.color)}
                             />
@@ -206,7 +215,7 @@ export default function BalanceScreen() {
                 {/* Add account button */}
                 <TouchableOpacity
                     className="flex-row items-center justify-center py-3 mb-6 bg-blue-50 dark:bg-gray-800 border border-dashed border-blue-400 dark:border-blue-700 rounded-xl"
-                    onPress={() => console.log("Add account pressed")}
+                    onPress={handleConnectBank}
                 >
                     <Ionicons
                         name="add-circle-outline"
