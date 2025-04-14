@@ -1,11 +1,5 @@
 // src/services/plaidService.js
-
-/**
- * Service for interacting with our backend API for Plaid operations
- */
-
-// Update this to your backend URL (use environment variables in production)
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 /**
  * Get a link token from our backend server
@@ -13,7 +7,13 @@ const API_BASE_URL = 'http://localhost:3000/api';
  */
 export const getLinkToken = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/create_link_token`);
+        const response = await fetch(`${API_BASE_URL}/create_link_token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: 'demo-user-id' }), // or your actual user ID
+        });
 
         if (!response.ok) {
             throw new Error(`Failed to get link token: ${response.status}`);
@@ -27,33 +27,23 @@ export const getLinkToken = async () => {
     }
 };
 
+
 /**
  * Exchange a public token for an access token via our backend
  * The backend will handle the communication with Plaid
  */
-export const exchangePublicToken = async (publicToken) => {
-    try {
-        console.log('Sending public token to backend for exchange:', publicToken);
+export const exchangePublicToken = async (public_token) => {
+    console.log("📨 Sending public_token to backend:", public_token);
+    const res = await fetch(`${API_BASE_URL}/exchange_public_token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_token }),
+    });
 
-        const response = await fetch(`${API_BASE_URL}/exchange_public_token`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ public_token: publicToken }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Failed to exchange token: ${response.status}`);
-        }
-
-        return response.json();
-    } catch (error) {
-        console.error('Error exchanging public token:', error);
-        throw error;
-    }
+    if (!res.ok) throw new Error("Token exchange failed");
+    return await res.json();
 };
+
 
 /**
  * Fetch transactions from our backend server
