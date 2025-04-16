@@ -8,13 +8,45 @@ export async function getDbAccounts() {
 
 
 // Transactions
-export async function getDbTransactions(userId, options = {}) {
-    const query = new URLSearchParams(options).toString();
-    const url = `${API_BASE_URL}/api/db/transactions?${query}`;
+//export async function getDbTransactions(userId, options = {}) {
+//    const query = new URLSearchParams(options).toString();
+//    const url = `${API_BASE_URL}/api/transactions${query ? `?${query}` : ''}`;
+//
+//    try {
+//        const res = await fetch(url);
+//        const text = await res.text();
+//        console.log("🔍 Raw response from", url, "→", text.slice(0, 300)); // Log preview
+//        return JSON.parse(text);
+//    } catch (err) {
+//        console.error("❌ Failed to fetch transactions:", err.message);
+//        throw err;
+//    }
+//}
+export async function getDbTransactions(userId, accessToken, options = {}) {
+    // Add userId to options if it's not already there
+    if (userId && !options.user_id) {
+        options.user_id = userId;
+    }
+
+    const url = `${API_BASE_URL}/api/transactions`;
+    console.log("📞 Attempting to fetch from:", url);
+
     try {
-        const res = await fetch(url);
+        // Changed to POST method with JSON body
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(options)
+        });
+
+        if (!res.ok) {
+            throw new Error(`Server responded with ${res.status}: ${res.statusText}`);
+        }
+
         const text = await res.text();
-        console.log("🔍 Raw response from", url, "→", text.slice(0, 300)); // Log preview
+        console.log("🔍 Raw response:", text.slice(0, 300)); // Log preview
         return JSON.parse(text);
     } catch (err) {
         console.error("❌ Failed to fetch transactions:", err.message);
