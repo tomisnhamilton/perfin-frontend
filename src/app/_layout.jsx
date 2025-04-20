@@ -4,7 +4,7 @@ import { useColorScheme } from "react-native";
 import "@/assets/css/global.css";
 import { useNavigationTheme } from "@/navigation/useNavigationTheme";
 import { PlaidProvider } from "../store/PlaidContext";
-import { DBProvider } from "../store/DBContext"; // 👈 import DBProvider
+import { DBProvider } from "../store/DBContext";
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();

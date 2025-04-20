@@ -1,6 +1,5 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
-import { PieChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -13,20 +12,5 @@ export default function SpendingByCategoryChart({ data }) {
         legendFontSize: 12,
     }));
 
-    return (
-        <PieChart
-            data={chartData}
-            width={screenWidth - 32}
-            height={220}
-            chartConfig={{
-                backgroundGradientFrom: '#fff',
-                backgroundGradientTo: '#fff',
-                color: () => '#1976d2',
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="16"
-            // ✅ Removed `absolute` to show just the category names
-        />
-    );
+    return null;
 }
