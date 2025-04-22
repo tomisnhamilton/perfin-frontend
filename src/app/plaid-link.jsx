@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WebView } from 'react-native-webview';
 import MainLayout from '@/components/ui/MainLayout';
+import {usePlaid} from "../store/PlaidContext";
+import {useRouter} from "expo-router";
+import {ActivityIndicator, Text, View} from "react-native";
+import * as plaidService from "../services/plaidService";
+
 
 export default function PlaidLinkScreen() {
     const [linkToken, setLinkToken] = useState(null);
@@ -54,11 +59,10 @@ export default function PlaidLinkScreen() {
         );
     }
 
-
     return (
         <MainLayout title="Plaid Link">
             <WebView
-                source={{ uri: `https://link.plaid.com/?token=${null}` }}
+                source={{ uri: `http://localhost:3000/plaid-link.html?token=${linkToken}` }}
                 style={{ height: 600 }}
             />
         </MainLayout>

@@ -8,7 +8,7 @@ export default function ConnectBank() {
 
     return (
         <MainLayout title="Connect Your Bank">
-            <Button mode="contained" onPress={linkBank}>
+            <Button mode="contained" onPress={linkBank} icon="bank" style={{ marginTop: 20 }}>
                 Link Bank Account
             </Button>
         </MainLayout>

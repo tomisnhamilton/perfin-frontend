@@ -41,5 +41,6 @@ export const exchangePublicToken = async (public_token) => {
     });
 
     if (!res.ok) throw new Error("Token exchange failed");
+    console.log("🔗 Final linkToken used:", linkToken);
     return await res.json();
 };
