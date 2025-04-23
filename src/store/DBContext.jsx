@@ -1,14 +1,25 @@
+// src/store/DBContext.jsx - Fixed version
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
     getDbAccounts,
     getDbTransactions,
-    getBalanceHistory,
     getRecurringTransactions,
     getInstitutions
 } from '../services/dbService';
 import { useAuth } from './AuthContext';
 
-const DBContext = createContext(null);
+// Create context with default values
+const DBContext = createContext({
+    accounts: [],
+    transactions: [],
+    balanceHistory: [],
+    recurring: { inflow_streams: [], outflow_streams: [] },
+    institutions: [],
+    upcomingTransactions: [],
+    loading: true,
+    error: null,
+    refetch: async () => false
+});
 
 export const useDB = () => {
     const context = useContext(DBContext);
@@ -19,12 +30,16 @@ export const useDB = () => {
 export function DBProvider({ children }) {
     const [accounts, setAccounts] = useState([]);
     const [transactions, setTransactions] = useState([]);
-    const [balanceHistory, setBalanceHistory] = useState([]);
-    const [recurring, setRecurring] = useState({ inflow: [], outflow: [] });
+    const [recurring, setRecurring] = useState({ inflow_streams: [], outflow_streams: [] });
     const [institutions, setInstitutions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const { userData, userToken, isAuthenticated } = useAuth();
+
+    // Get auth context safely
+    const auth = useAuth();
+    const userData = auth?.userData;
+    const userToken = auth?.userToken;
+    const isAuthenticated = auth?.isAuthenticated || false;
 
     // Load data when user is authenticated
     useEffect(() => {
@@ -46,14 +61,15 @@ export function DBProvider({ children }) {
                 const [
                     acctData,
                     txnData,
-                    balanceData,
                     recurringData,
                     institutionsData
                 ] = await Promise.all([
-                    getDbAccounts(userData.id, userToken),
-                    getDbTransactions(userData.id, userToken),
-                    getBalanceHistory(userData.id, userToken).catch(err => {
-                        console.warn("Failed to load balance history:", err);
+                    getDbAccounts(userData.id, userToken).catch(err => {
+                        console.warn("Failed to load accounts:", err);
+                        return [];
+                    }),
+                    getDbTransactions(userData.id, userToken).catch(err => {
+                        console.warn("Failed to load transactions:", err);
                         return [];
                     }),
                     getRecurringTransactions(userData.id, userToken).catch(err => {
@@ -69,19 +85,48 @@ export function DBProvider({ children }) {
                 if (isMounted) {
                     console.log(`📊 Loaded ${acctData.length} accounts and ${txnData.length} transactions`);
 
-                    // Process recurring transactions data
-                    const processedRecurring = {
-                        inflow: recurringData.inflow_streams || [],
-                        outflow: recurringData.outflow_streams || []
+                    // Log the recurring data structure
+                    // console.log('Recurring data structure:',
+                    //     typeof recurringData === 'object' ?
+                    //         JSON.stringify(recurringData, null, 2) :
+                    //         'Invalid data structure');
+
+                    // Process recurring data - ensure it's in the right format
+                    let processedRecurring = {
+                        inflow_streams: [],
+                        outflow_streams: []
                     };
 
+                    // Safely handle different data structures that might come back
+                    if (recurringData && typeof recurringData === 'object') {
+                        if (Array.isArray(recurringData.inflow_streams)) {
+                            processedRecurring.inflow_streams = recurringData.inflow_streams;
+                        }
+
+                        if (Array.isArray(recurringData.outflow_streams)) {
+                            processedRecurring.outflow_streams = recurringData.outflow_streams;
+                        }
+
+                        // Also check for camelCase or different key names (just in case)
+                        if (Array.isArray(recurringData.inflowStreams)) {
+                            processedRecurring.inflow_streams = recurringData.inflowStreams;
+                        }
+
+                        if (Array.isArray(recurringData.outflowStreams)) {
+                            processedRecurring.outflow_streams = recurringData.outflowStreams;
+                        }
+                    }
+
                     // Set all data in state
-                    setAccounts(acctData);
-                    setTransactions(txnData);
-                    setBalanceHistory(balanceData);
+                    setAccounts(acctData || []);
+                    setTransactions(txnData || []);
                     setRecurring(processedRecurring);
-                    setInstitutions(institutionsData);
+                    setInstitutions(institutionsData || []);
                     setError(null);
+
+                    console.log('Recurring streams:',
+                        `${processedRecurring.inflow_streams.length} inflows,`,
+                        `${processedRecurring.outflow_streams.length} outflows`);
                 }
             } catch (err) {
                 console.error("❌ Error loading financial data:", err);
@@ -90,8 +135,7 @@ export function DBProvider({ children }) {
                     // Set empty arrays to avoid undefined errors in components
                     setAccounts([]);
                     setTransactions([]);
-                    setBalanceHistory([]);
-                    setRecurring({ inflow: [], outflow: [] });
+                    setRecurring({ inflow_streams: [], outflow_streams: [] });
                     setInstitutions([]);
                 }
             } finally {
@@ -127,29 +171,46 @@ export function DBProvider({ children }) {
             const [
                 acctData,
                 txnData,
-                balanceData,
                 recurringData,
                 institutionsData
             ] = await Promise.all([
-                getDbAccounts(userData.id, userToken),
-                getDbTransactions(userData.id, userToken),
-                getBalanceHistory(userData.id, userToken).catch(() => []),
+                getDbAccounts(userData.id, userToken).catch(() => []),
+                getDbTransactions(userData.id, userToken).catch(() => []),
                 getRecurringTransactions(userData.id, userToken).catch(() => ({ inflow_streams: [], outflow_streams: [] })),
                 getInstitutions(userData.id, userToken).catch(() => [])
             ]);
 
-            // Process recurring transactions data
-            const processedRecurring = {
-                inflow: recurringData.inflow_streams || [],
-                outflow: recurringData.outflow_streams || []
+            // Process recurring data
+            let processedRecurring = {
+                inflow_streams: [],
+                outflow_streams: []
             };
 
+            // Handle different possible data structures
+            if (recurringData && typeof recurringData === 'object') {
+                if (Array.isArray(recurringData.inflow_streams)) {
+                    processedRecurring.inflow_streams = recurringData.inflow_streams;
+                }
+
+                if (Array.isArray(recurringData.outflow_streams)) {
+                    processedRecurring.outflow_streams = recurringData.outflow_streams;
+                }
+
+                // Also check for camelCase or different key names
+                if (Array.isArray(recurringData.inflowStreams)) {
+                    processedRecurring.inflow_streams = recurringData.inflowStreams;
+                }
+
+                if (Array.isArray(recurringData.outflowStreams)) {
+                    processedRecurring.outflow_streams = recurringData.outflowStreams;
+                }
+            }
+
             // Set all data in state
-            setAccounts(acctData);
-            setTransactions(txnData);
-            setBalanceHistory(balanceData);
+            setAccounts(acctData || []);
+            setTransactions(txnData || []);
             setRecurring(processedRecurring);
-            setInstitutions(institutionsData);
+            setInstitutions(institutionsData || []);
             setError(null);
 
             return true;
@@ -162,68 +223,168 @@ export function DBProvider({ children }) {
         }
     };
 
-    // Calculate upcoming transactions from recurring streams
-    const getUpcomingTransactions = (days = 30) => {
-        const now = new Date();
-        const cutoff = new Date(now);
-        cutoff.setDate(now.getDate() + days);
+    // Calculate upcoming transactions from recurring streams - safely
+    const getUpcomingTransactions = () => {
+        try {
+            const days = 30;
+            const now = new Date();
+            const cutoff = new Date(now);
+            cutoff.setDate(now.getDate() + days);
 
-        // Process outflow streams (expenses)
-        const upcoming = recurring.outflow.reduce((result, stream) => {
-            if (!stream || !stream.stream_id) return result;
+            const upcoming = [];
 
-            // Get next occurrence
-            const frequency = stream.frequency || 'UNKNOWN';
-            const lastDate = stream.last_date ? new Date(stream.last_date) : now;
+            // Safely process outflow streams (expenses)
+            if (recurring && Array.isArray(recurring.outflow_streams)) {
+                recurring.outflow_streams.forEach(stream => {
+                    try {
+                        if (!stream || !stream.stream_id || !stream.description) return;
 
-            // Skip if there's no meaningful data
-            if (!stream.description || !stream.average_amount) return result;
+                        // Safely get amount
+                        let amount = 0;
+                        try {
+                            amount = parseFloat(stream.average_amount || 0);
+                            if (isNaN(amount)) amount = 0;
+                        } catch (e) {
+                            console.warn(`Invalid amount for ${stream.description}: ${stream.average_amount}`);
+                            amount = 0;
+                        }
 
-            // Calculate next date based on frequency
-            let nextDate = new Date(lastDate);
+                        // Safely get frequency and date
+                        const frequency = stream.frequency || 'MONTHLY';
+                        const lastDate = stream.last_date ? new Date(stream.last_date) : now;
 
-            switch(frequency.toUpperCase()) {
-                case 'WEEKLY':
-                    nextDate.setDate(nextDate.getDate() + 7);
-                    break;
-                case 'BIWEEKLY':
-                    nextDate.setDate(nextDate.getDate() + 14);
-                    break;
-                case 'MONTHLY':
-                    nextDate.setMonth(nextDate.getMonth() + 1);
-                    break;
-                case 'QUARTERLY':
-                    nextDate.setMonth(nextDate.getMonth() + 3);
-                    break;
-                case 'ANNUALLY':
-                    nextDate.setFullYear(nextDate.getFullYear() + 1);
-                    break;
-                default:
-                    nextDate.setMonth(nextDate.getMonth() + 1); // Default to monthly
-            }
+                        // Calculate next date
+                        let nextDate = new Date(lastDate);
 
-            // Only include if it's within our window
-            if (nextDate <= cutoff) {
-                result.push({
-                    name: stream.description,
-                    amount: stream.average_amount,
-                    date: nextDate.toISOString().split('T')[0],
-                    frequency: frequency,
-                    stream_id: stream.stream_id
+                        switch(frequency.toUpperCase()) {
+                            case 'WEEKLY':
+                                nextDate.setDate(nextDate.getDate() + 7);
+                                break;
+                            case 'BIWEEKLY':
+                                nextDate.setDate(nextDate.getDate() + 14);
+                                break;
+                            case 'SEMI_MONTHLY':
+                                nextDate.setDate(nextDate.getDate() + 15);
+                                break;
+                            case 'MONTHLY':
+                                nextDate.setMonth(nextDate.getMonth() + 1);
+                                break;
+                            case 'QUARTERLY':
+                                nextDate.setMonth(nextDate.getMonth() + 3);
+                                break;
+                            case 'SEMI_ANNUALLY':
+                                nextDate.setMonth(nextDate.getMonth() + 6);
+                                break;
+                            case 'ANNUALLY':
+                            case 'YEARLY':
+                                nextDate.setFullYear(nextDate.getFullYear() + 1);
+                                break;
+                            default:
+                                nextDate.setMonth(nextDate.getMonth() + 1);
+                        }
+
+                        // Only include if it's within our window
+                        if (nextDate <= cutoff) {
+                            upcoming.push({
+                                name: stream.description,
+                                amount: amount,
+                                date: nextDate.toISOString().split('T')[0],
+                                frequency: frequency,
+                                stream_id: stream.stream_id,
+                                type: 'expense'
+                            });
+                        }
+                    } catch (err) {
+                        console.warn('Error processing outflow stream:', err);
+                    }
                 });
             }
 
-            return result;
-        }, []);
+            // Safely process inflow streams (income)
+            if (recurring && Array.isArray(recurring.inflow_streams)) {
+                recurring.inflow_streams.forEach(stream => {
+                    try {
+                        if (!stream || !stream.stream_id || !stream.description) return;
 
-        // Sort by date (ascending)
-        return upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        // Safely get amount
+                        let amount = 0;
+                        try {
+                            amount = parseFloat(stream.average_amount || 0);
+                            if (isNaN(amount)) amount = 0;
+                        } catch (e) {
+                            console.warn(`Invalid amount for ${stream.description}: ${stream.average_amount}`);
+                            amount = 0;
+                        }
+
+                        // Safely get frequency and date
+                        const frequency = stream.frequency || 'MONTHLY';
+                        const lastDate = stream.last_date ? new Date(stream.last_date) : now;
+
+                        // Calculate next date
+                        let nextDate = new Date(lastDate);
+
+                        switch(frequency.toUpperCase()) {
+                            case 'WEEKLY':
+                                nextDate.setDate(nextDate.getDate() + 7);
+                                break;
+                            case 'BIWEEKLY':
+                                nextDate.setDate(nextDate.getDate() + 14);
+                                break;
+                            case 'SEMI_MONTHLY':
+                                nextDate.setDate(nextDate.getDate() + 15);
+                                break;
+                            case 'MONTHLY':
+                                nextDate.setMonth(nextDate.getMonth() + 1);
+                                break;
+                            case 'QUARTERLY':
+                                nextDate.setMonth(nextDate.getMonth() + 3);
+                                break;
+                            case 'SEMI_ANNUALLY':
+                                nextDate.setMonth(nextDate.getMonth() + 6);
+                                break;
+                            case 'ANNUALLY':
+                            case 'YEARLY':
+                                nextDate.setFullYear(nextDate.getFullYear() + 1);
+                                break;
+                            default:
+                                nextDate.setMonth(nextDate.getMonth() + 1);
+                        }
+
+                        // Only include if it's within our window
+                        if (nextDate <= cutoff) {
+                            upcoming.push({
+                                name: stream.description,
+                                amount: amount,
+                                date: nextDate.toISOString().split('T')[0],
+                                frequency: frequency,
+                                stream_id: stream.stream_id,
+                                type: 'income'
+                            });
+                        }
+                    } catch (err) {
+                        console.warn('Error processing inflow stream:', err);
+                    }
+                });
+            }
+
+            // Sort by date (ascending) - safely
+            return upcoming.sort((a, b) => {
+                try {
+                    return new Date(a.date) - new Date(b.date);
+                } catch (err) {
+                    return 0;
+                }
+            });
+        } catch (err) {
+            console.error('Error calculating upcoming transactions:', err);
+            return [];
+        }
     };
 
     const value = {
         accounts,
         transactions,
-        balanceHistory,
+        balanceHistory: accounts, // Use accounts for balance history
         recurring,
         institutions,
         upcomingTransactions: getUpcomingTransactions(),

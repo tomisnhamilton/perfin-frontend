@@ -1,4 +1,4 @@
-// src/services/dbService.js
+// src/services/dbService.js - Updated with recurring transactions support
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
 // Accounts
@@ -63,27 +63,63 @@ export async function getDbTransactions(userId, authToken, options = {}) {
     }
 }
 
-// Grouped spending
-export async function getTransactionsByCategory(userId, authToken) {
+// Recurring transactions
+export async function getRecurringTransactions(userId, authToken) {
     try {
         const queryParams = userId ? `?user_id=${userId}` : '';
-        const url = `${API_BASE_URL}/api/db/transactions/by-category${queryParams}`;
+        const url = `${API_BASE_URL}/api/db/recurring${queryParams}`;
 
         const headers = {};
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
         }
 
+        console.log(`Fetching recurring transactions from: ${url}`);
         const res = await fetch(url, { headers });
 
         if (!res.ok) {
             const errorText = await res.text();
-            throw new Error(`Failed to fetch transactions by category: ${res.status} - ${errorText}`);
+            throw new Error(`Failed to fetch recurring transactions: ${res.status} - ${errorText}`);
         }
 
-        return await res.json();
+        const data = await res.json();
+
+        // Check for proper structure or convert to it
+        let processedData = {
+            inflow_streams: [],
+            outflow_streams: []
+        };
+
+        if (data) {
+            // If data already has the structure we need
+            if (data.inflow_streams || data.outflow_streams) {
+                processedData.inflow_streams = data.inflow_streams || [];
+                processedData.outflow_streams = data.outflow_streams || [];
+            }
+            // If data is an array (possibly multiple recurring entries)
+            else if (Array.isArray(data)) {
+                // Combine all entries
+                data.forEach(item => {
+                    if (item && item.inflow_streams) {
+                        processedData.inflow_streams = [
+                            ...processedData.inflow_streams,
+                            ...item.inflow_streams
+                        ];
+                    }
+                    if (item && item.outflow_streams) {
+                        processedData.outflow_streams = [
+                            ...processedData.outflow_streams,
+                            ...item.outflow_streams
+                        ];
+                    }
+                });
+            }
+        }
+
+        console.log(`Retrieved recurring transactions: ${processedData.inflow_streams.length} inflows, ${processedData.outflow_streams.length} outflows`);
+        return processedData;
     } catch (err) {
-        console.error('Error fetching transactions by category:', err);
+        console.error('Error fetching recurring transactions:', err);
         throw err;
     }
 }
@@ -109,56 +145,6 @@ export async function getInstitutions(userId, authToken) {
         return await res.json();
     } catch (err) {
         console.error('Error fetching institutions:', err);
-        throw err;
-    }
-}
-
-// Recurring
-export async function getRecurringTransactions(userId, authToken) {
-    try {
-        const queryParams = userId ? `?user_id=${userId}` : '';
-        const url = `${API_BASE_URL}/api/db/recurring${queryParams}`;
-
-        const headers = {};
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
-        }
-
-        const res = await fetch(url, { headers });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to fetch recurring transactions: ${res.status} - ${errorText}`);
-        }
-
-        return await res.json();
-    } catch (err) {
-        console.error('Error fetching recurring transactions:', err);
-        throw err;
-    }
-}
-
-// Balance history
-export async function getBalanceHistory(userId, authToken) {
-    try {
-        const queryParams = userId ? `?user_id=${userId}` : '';
-        const url = `${API_BASE_URL}/api/db/balances${queryParams}`;
-
-        const headers = {};
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
-        }
-
-        const res = await fetch(url, { headers });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to fetch balance history: ${res.status} - ${errorText}`);
-        }
-
-        return await res.json();
-    } catch (err) {
-        console.error('Error fetching balance history:', err);
         throw err;
     }
 }

@@ -1,4 +1,4 @@
-// src/app/plaid-link.jsx
+// src/app/plaid-link.jsx - Updated version
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, Text, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -12,9 +12,9 @@ export default function PlaidLink() {
     const [linkToken, setLinkToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processingLink, setProcessingLink] = useState(false);
-    const { setIsLinked, fetchAccounts, fetchTransactions } = usePlaid();
+    const { setIsLinked } = usePlaid();
     const { userData, userToken } = useAuth();
-    const { refetch: refetchDBData } = useDB(); // Get the refetch function from DBContext
+    const { refetch: refetchDBData } = useDB();
     const router = useRouter();
 
     useEffect(() => {
@@ -36,6 +36,36 @@ export default function PlaidLink() {
         };
         init();
     }, [userToken, userData]);
+
+    // Trigger full data sync with the Plaid API
+    const triggerPlaidSync = async () => {
+        try {
+            const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+
+            console.log('🔄 Performing full data sync with Plaid...');
+            const response = await fetch(`${API_BASE_URL}/api/sync_plaid_data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': userToken ? `Bearer ${userToken}` : '',
+                },
+                body: JSON.stringify({
+                    user_id: userData?.id
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to sync Plaid data: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ All Plaid data synced successfully', data);
+            return true;
+        } catch (error) {
+            console.error('Error syncing Plaid data:', error);
+            return false;
+        }
+    };
 
     const handleMessage = async (event) => {
         try {
@@ -67,15 +97,11 @@ export default function PlaidLink() {
                     console.log('Token exchange successful:', exchange);
                     setIsLinked(true);
 
-                    // Fetch data from Plaid
-                    console.log('Fetching accounts from Plaid...');
-                    await fetchAccounts();
+                    // Sync Plaid data after successful token exchange
+                    console.log('Syncing all Plaid data...');
+                    await triggerPlaidSync();
 
-                    console.log('Fetching transactions from Plaid...');
-                    await fetchTransactions();
-
-                    // Also refresh the DB data to make sure everything is up to date
-                    console.log('Refreshing all financial data...');
+                    // Refresh the UI data
                     await refetchDBData();
 
                     // Show success message

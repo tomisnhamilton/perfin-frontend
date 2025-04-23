@@ -54,15 +54,6 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="balance"
-                options={{
-                    title: "Balance",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="analytics-outline" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="recurring"
                 options={{
                     title: "Recurring",

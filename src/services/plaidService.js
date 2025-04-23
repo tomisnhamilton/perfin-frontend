@@ -43,6 +43,7 @@ export const getLinkToken = async (userToken, userId) => {
  * Exchange a public token for an access token via our backend
  * The backend will handle the communication with Plaid
  */
+// Update to exchangePublicToken function in plaidService.js
 export const exchangePublicToken = async (public_token, userToken, userId) => {
     try {
         console.log("📨 Sending public_token to backend:", public_token);
@@ -73,16 +74,7 @@ export const exchangePublicToken = async (public_token, userToken, userId) => {
         const data = await res.json();
         console.log("Token exchange successful:", data);
 
-        // After token exchange, we need to trigger initial data sync
-        console.log("Triggering initial data sync with Plaid...");
-
-        // Trigger backend to fetch all data from Plaid
-        await Promise.all([
-            triggerPlaidSync('accounts', userToken, userId),
-            triggerPlaidSync('transactions', userToken, userId),
-            triggerPlaidSync('balances', userToken, userId)
-        ]);
-
+        // Safely return data without accessing undefined properties
         return data;
     } catch (error) {
         console.error("Error exchanging public token:", error);

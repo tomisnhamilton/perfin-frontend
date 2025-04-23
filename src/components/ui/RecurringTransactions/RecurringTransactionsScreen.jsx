@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/components/ui/RecurringTransactions/RecurringTransactionsScreen.jsx - Fixed with amount handling
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Card, Title, Divider } from 'react-native-paper';
 import { useDB } from '@/store/DBContext';
@@ -29,6 +30,20 @@ export default function RecurringTransactionsScreen() {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
 
+    // // Debug the recurring data structure
+    // useEffect(() => {
+    //     //console.log('Current recurring data structure:', JSON.stringify(recurring, null, 2));
+    //     //console.log('Upcoming transactions:', upcomingTransactions?.length || 0);
+    //
+    //     // Log a sample inflow and outflow to check amount values
+    //     if (recurring?.inflow_streams?.length) {
+    //         console.log('Sample inflow:', JSON.stringify(recurring.inflow_streams[0], null, 2));
+    //     }
+    //     if (recurring?.outflow_streams?.length) {
+    //         console.log('Sample outflow:', JSON.stringify(recurring.outflow_streams[0], null, 2));
+    //     }
+    // }, [recurring, upcomingTransactions]);
+
     const onRefresh = async () => {
         setRefreshing(true);
         await refetch();
@@ -36,8 +51,8 @@ export default function RecurringTransactionsScreen() {
     };
 
     // Safe access to data
-    const safeInflow = recurring?.inflow || [];
-    const safeOutflow = recurring?.outflow || [];
+    const safeInflow = recurring?.inflow_streams || [];
+    const safeOutflow = recurring?.outflow_streams || [];
     const safeUpcoming = upcomingTransactions || [];
 
     // If still loading, show a loading indicator
@@ -52,10 +67,14 @@ export default function RecurringTransactionsScreen() {
 
     // Calculate total monthly outflow
     const monthlyOutflow = safeOutflow.reduce((sum, stream) => {
-        if (!stream || !stream.average_amount) return sum;
+        if (!stream) return sum;
+
+        // Make sure we're accessing the correct property and it's a number
+        const amount = parseFloat(stream.average_amount || 0);
+        if (isNaN(amount)) return sum;
 
         // Convert to monthly amount based on frequency
-        let monthlyAmount = stream.average_amount;
+        let monthlyAmount = amount;
         const frequency = (stream.frequency || '').toUpperCase();
 
         if (frequency === 'WEEKLY') {
@@ -64,7 +83,7 @@ export default function RecurringTransactionsScreen() {
             monthlyAmount *= 2.17; // Average bi-weekly occurrences per month
         } else if (frequency === 'QUARTERLY') {
             monthlyAmount /= 3; // Spread quarterly over 3 months
-        } else if (frequency === 'ANNUALLY') {
+        } else if (frequency === 'ANNUALLY' || frequency === 'YEARLY') {
             monthlyAmount /= 12; // Spread annual over 12 months
         }
 
@@ -73,10 +92,14 @@ export default function RecurringTransactionsScreen() {
 
     // Calculate total monthly inflow
     const monthlyInflow = safeInflow.reduce((sum, stream) => {
-        if (!stream || !stream.average_amount) return sum;
+        if (!stream) return sum;
+
+        // Make sure we're accessing the correct property and it's a number
+        const amount = parseFloat(stream.average_amount || 0);
+        if (isNaN(amount)) return sum;
 
         // Convert to monthly amount based on frequency
-        let monthlyAmount = stream.average_amount;
+        let monthlyAmount = amount;
         const frequency = (stream.frequency || '').toUpperCase();
 
         if (frequency === 'WEEKLY') {
@@ -85,7 +108,7 @@ export default function RecurringTransactionsScreen() {
             monthlyAmount *= 2.17; // Average bi-weekly occurrences per month
         } else if (frequency === 'QUARTERLY') {
             monthlyAmount /= 3; // Spread quarterly over 3 months
-        } else if (frequency === 'ANNUALLY') {
+        } else if (frequency === 'ANNUALLY' || frequency === 'YEARLY') {
             monthlyAmount /= 12; // Spread annual over 12 months
         }
 
@@ -108,6 +131,9 @@ export default function RecurringTransactionsScreen() {
                                     />
                                     <Text className="text-center mt-4 text-gray-500">
                                         No upcoming recurring transactions detected.
+                                    </Text>
+                                    <Text className="text-center mt-2 text-gray-500">
+                                        This data is provided by Plaid based on your transaction history.
                                     </Text>
                                 </Card.Content>
                             </Card>
@@ -155,6 +181,9 @@ export default function RecurringTransactionsScreen() {
                                     />
                                     <Text className="text-center mt-4 text-gray-500">
                                         No recurring income detected.
+                                    </Text>
+                                    <Text className="text-center mt-2 text-gray-500">
+                                        Plaid may need more transaction history to identify patterns.
                                     </Text>
                                 </Card.Content>
                             </Card>
@@ -204,6 +233,9 @@ export default function RecurringTransactionsScreen() {
                                     />
                                     <Text className="text-center mt-4 text-gray-500">
                                         No recurring expenses detected.
+                                    </Text>
+                                    <Text className="text-center mt-2 text-gray-500">
+                                        Plaid may need more transaction history to identify patterns.
                                     </Text>
                                 </Card.Content>
                             </Card>
