@@ -1,19 +1,40 @@
 // src/app/(tabs)/settings.jsx
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { ScreenLayout } from "@/components/layouts/ScreenLayout";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/store/AuthContext";
 
 export default function SettingsScreen() {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === "dark";
     const router = useRouter();
+    const { userData, logout, isAuthenticated } = useAuth();
 
     const handleConnectBank = () => {
-        console.log('Connect Bank button pressed');
         router.push('/connect-bank');
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            "Logout",
+            "Are you sure you want to logout?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Logout",
+                    onPress: async () => {
+                        await logout();
+                        router.replace('/login');
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -29,10 +50,10 @@ export default function SettingsScreen() {
                         />
                     </View>
                     <Text className="text-xl font-bold text-gray-800 dark:text-white">
-                        User
+                        {userData?.username || "User"}
                     </Text>
                     <Text className="text-gray-500 dark:text-gray-400">
-                        user@example.com
+                        {userData?.email || "user@example.com"}
                     </Text>
                 </View>
 
@@ -58,7 +79,7 @@ export default function SettingsScreen() {
                                 Bank Accounts
                             </Text>
                             <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                                Connect your bank accounts
+                                Manage your connected bank accounts
                             </Text>
                         </View>
                         <Ionicons
@@ -90,7 +111,33 @@ export default function SettingsScreen() {
                                 Appearance
                             </Text>
                             <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                                {isDarkMode ? "Dark" : "Light"} mode
+                                {isDarkMode ? "Dark" : "Light"} mode (set by system)
+                            </Text>
+                        </View>
+                        <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={isDarkMode ? "#9ca3af" : "#6b7280"}
+                        />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="flex-row items-center p-4 mb-3 bg-white dark:bg-gray-800 rounded-xl"
+                        onPress={handleLogout}
+                    >
+                        <View className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-800 items-center justify-center mr-3">
+                            <Ionicons
+                                name="log-out-outline"
+                                size={20}
+                                color={isDarkMode ? "#fca5a5" : "#ef4444"}
+                            />
+                        </View>
+                        <View className="flex-1">
+                            <Text className="font-medium text-gray-800 dark:text-white">
+                                Logout
+                            </Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                                Sign out of your account
                             </Text>
                         </View>
                         <Ionicons

@@ -1,39 +1,92 @@
 // src/app/_layout.jsx
-import React from "react";
-import { Stack, Redirect } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Stack, Redirect, useSegments, useRouter } from "expo-router";
 import { useColorScheme } from "react-native";
 import "@/assets/css/global.css";
 import { useNavigationTheme } from "@/navigation/useNavigationTheme";
-import {PlaidProvider} from "../store/PlaidContext";
+import { PlaidProvider } from "@/store/PlaidContext";
+import { AuthProvider, useAuth } from "@/store/AuthContext";
+import { View, Text, ActivityIndicator } from "react-native";
+import {DBProvider} from "../store/DBContext";
+
+// Helper to check if a segment is protected
+const isProtectedSegment = (segment) => {
+    // Example: segments in (tabs) are protected
+    return segment && segment.startsWith('(tabs)');
+};
+
+// Authentication Guard component
+function AuthenticationGuard({ children }) {
+    const { isAuthenticated, isLoading } = useAuth();
+    const segments = useSegments();
+    const router = useRouter();
+
+    useEffect(() => {
+        // Skip when still loading
+        if (isLoading) return;
+
+        // Get the current segment (first segment in the array)
+        const inProtectedRoute = segments.some(isProtectedSegment);
+
+        // If we're in a protected route but not authenticated, redirect to login
+        if (inProtectedRoute && !isAuthenticated) {
+            router.replace('/login');
+        }
+        // If we're in a login/register route but already authenticated, redirect to dashboard
+        else if ((segments[0] === 'login' || segments[0] === 'register') && isAuthenticated) {
+            router.replace('/(tabs)/dashboard');
+        }
+    }, [isLoading, isAuthenticated, segments]);
+
+    // Show loading spinner while authentication state is being determined
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text style={{ marginTop: 10 }}>Loading...</Text>
+            </View>
+        );
+    }
+
+    // Render the children once we're done redirecting, or if no redirect is needed
+    return children;
+}
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
     const navigationTheme = useNavigationTheme();
 
-    // Redirect to the dashboard tab by default
     return (
-        <>
-            <PlaidProvider colorScheme={colorScheme}>
-                {/* This will redirect from the root route (/) to the (tabs)/dashboard route */}
-                <Redirect href="/(tabs)/dashboard" />
-
-                <Stack
-                    screenOptions={{
-                        headerStyle: {
-                            backgroundColor: navigationTheme.headerBackground,
-                        },
-                        headerTintColor: navigationTheme.headerTint,
-                        headerShadowVisible: false,
-                        headerBackTitle: "Back",
-                    }}
-                >
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="connect-bank" options={{
-                        title: "Connect Bank Account",
-                        headerShown: true,
-                    }} />
-                </Stack>
+        <AuthProvider>
+            <DBProvider>
+            <PlaidProvider>
+                <AuthenticationGuard>
+                    <Stack
+                        screenOptions={{
+                            headerStyle: {
+                                backgroundColor: navigationTheme.headerBackground,
+                            },
+                            headerTintColor: navigationTheme.headerTint,
+                            headerShadowVisible: false,
+                            headerBackTitle: "Back",
+                        }}
+                    >
+                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                        <Stack.Screen name="connect-bank" options={{
+                            title: "Connect Bank Account",
+                            headerShown: true,
+                        }} />
+                        <Stack.Screen name="plaid-link" options={{
+                            title: "Connect Your Bank",
+                            headerShown: true,
+                        }} />
+                        <Stack.Screen name="login" options={{ headerShown: false }} />
+                        <Stack.Screen name="register" options={{ headerShown: false }} />
+                        <Stack.Screen name="index" options={{ headerShown: false }} />
+                    </Stack>
+                </AuthenticationGuard>
             </PlaidProvider>
-        </>
+            </DBProvider>
+        </AuthProvider>
     );
 }

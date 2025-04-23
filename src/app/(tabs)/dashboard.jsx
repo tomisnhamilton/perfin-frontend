@@ -1,105 +1,133 @@
-// src/app/(tabs)/dashboard.jsx
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { ScreenLayout } from "@/components/layouts/ScreenLayout";
-import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
-import { useRouter } from "expo-router";
+import React from 'react';
+import { View, ScrollView } from 'react-native';
+import { Card, Text, Title } from 'react-native-paper';
+import { VictoryLine } from 'victory-native';
+import { VictoryPie } from 'victory-native';
+import { useDB } from '@/store/DBContext';
 
-export default function DashboardScreen() {
-    const colorScheme = useColorScheme();
-    const isDarkMode = colorScheme === "dark";
-    const router = useRouter();
+export default function DashboardScreen({ navigation }) {
+    const { accounts, transactions, loading } = useDB();
 
-    const handleConnectBank = () => {
-        console.log('Connect Bank button pressed');
-        router.push('/connect-bank');
-    };
+    // 1. Calculate total balance
+    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balances?.current || 0), 0);
+
+    // 2. Weekly transaction totals
+    const now = new Date();
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(now);
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split('T')[0]; // yyyy-mm-dd
+    });
+
+    const txPerDay = last7.map(day => {
+        const sum = transactions
+            .filter(tx => tx.date === day)
+            .reduce((total, tx) => total + Math.abs(tx.amount), 0);
+        return { x: day.slice(5), y: sum }; // show MM-DD
+    });
+
+    // 3. Mocked upcoming recurring (replace with real logic later)
+    const upcomingRecurring = [
+        { name: 'Netflix', date: '2025-04-20', amount: 15.99 },
+        { name: 'Spotify', date: '2025-04-22', amount: 9.99 },
+    ];
+
+    const past = new Date();
+    past.setDate(past.getDate() - 6);
+
+    const spendingTx = transactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= past && tx.amount < 0 && !isNaN(tx.amount);
+    });
+
+    const grouped = {};
+    for (let tx of spendingTx) {
+        const category = Array.isArray(tx.category) && tx.category.length
+            ? tx.category[0]
+            : 'Other';
+
+        if (!category || typeof category !== 'string') continue;
+
+        const amt = Math.abs(tx.amount);
+        if (isNaN(amt) || amt <= 0) continue;
+
+        grouped[category] = (grouped[category] || 0) + amt;
+    }
+
+    const pieData = Object.entries(grouped)
+        .map(([category, total]) => ({
+            x: category,
+            y: Number(total.toFixed(2)),
+        }))
+        .filter(d => d.x && !isNaN(d.y) && d.y > 0);
+
+    let pieChart;
+    if (pieData.length === 0) {
+        pieChart = <Text>No spending this period.</Text>;
+    } else {
+        pieChart = (
+            <VictoryPie
+                height={250}
+                colorScale="qualitative"
+                innerRadius={50}
+                padAngle={2}
+                style={{
+                    labels: { fontSize: 12, fill: '#555' },
+                }}
+                data={pieData}
+            />
+        );
+    }
 
     return (
-        <ScreenLayout>
-            <View className="flex-1 justify-center items-center">
-                <View className="bg-blue-50 dark:bg-blue-900 p-6 rounded-2xl w-full max-w-sm mb-4">
-                    <Text className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                        Overview
-                    </Text>
-                    <View className="flex-row justify-between items-center">
-                        <View>
-                            <Text className="text-gray-500 dark:text-gray-400">Balance</Text>
-                            <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-                                $0.00
-                            </Text>
+        <ScrollView className="p-4">
+            {/* Current Balance */}
+            <Card onPress={() => navigation.navigate('Balances')} className="mb-4">
+                <Card.Content>
+                    <Title className="text-xl font-bold">Current Balance</Title>
+                    <Text className="text-3xl mt-2">${totalBalance.toFixed(2)}</Text>
+                </Card.Content>
+            </Card>
+
+            {/* Weekly Transactions */}
+            <Card onPress={() => navigation.navigate('Transactions')} className="mb-4">
+                <Card.Content>
+                    <Title className="text-xl font-bold mb-2">Spending (Last 7 Days)</Title>
+                    {txPerDay.every(p => p.y === 0) ? (
+                        <Text>No transactions found.</Text>
+                    ) : (
+                        <VictoryLine
+                            data={txPerDay}
+                            height={200}
+                            style={{
+                                data: { stroke: "#4f46e5", strokeWidth: 2 },
+                            }}
+                            interpolation="natural"
+                        />
+                    )}
+                </Card.Content>
+            </Card>
+
+            {/* Spending by Category (This Week) */}
+            <Card onPress={() => navigation.navigate('Transactions')} className="mb-4">
+                <Card.Content>
+                    <Title className="text-xl font-bold mb-4">Spending by Category</Title>
+                    {pieChart}
+                </Card.Content>
+            </Card>
+
+            {/* Upcoming Recurring Payments */}
+            <Card onPress={() => navigation.navigate('Recurring')} className="mb-4">
+                <Card.Content>
+                    <Title className="text-xl font-bold mb-2">Upcoming Payments</Title>
+                    {upcomingRecurring.map((r, i) => (
+                        <View key={i} className="flex-row justify-between mb-2">
+                            <Text>{r.name}</Text>
+                            <Text>${r.amount.toFixed(2)} – {r.date}</Text>
                         </View>
-                        <View className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-800 items-center justify-center">
-                            <Ionicons
-                                name="trending-up"
-                                size={20}
-                                color={isDarkMode ? "#93c5fd" : "#3b82f6"}
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Connect Bank Account Button */}
-                <TouchableOpacity
-                    className="flex-row items-center justify-center py-3 px-4 mb-6 bg-blue-600 dark:bg-blue-500 rounded-xl"
-                    onPress={handleConnectBank}
-                >
-                    <Ionicons
-                        name="add-circle-outline"
-                        size={20}
-                        color="white"
-                    />
-                    <Text className="ml-2 text-white font-medium">
-                        Connect Bank Account
-                    </Text>
-                </TouchableOpacity>
-
-                <View className="flex-row justify-between w-full max-w-sm mb-4">
-                    <View className="bg-green-50 dark:bg-green-900 p-4 rounded-xl w-[48%]">
-                        <View className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800 items-center justify-center mb-2">
-                            <Ionicons
-                                name="arrow-down"
-                                size={16}
-                                color={isDarkMode ? "#86efac" : "#22c55e"}
-                            />
-                        </View>
-                        <Text className="text-gray-500 dark:text-gray-400">Income</Text>
-                        <Text className="text-lg font-bold text-gray-900 dark:text-white">
-                            $0.00
-                        </Text>
-                    </View>
-
-                    <View className="bg-red-50 dark:bg-red-900 p-4 rounded-xl w-[48%]">
-                        <View className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-800 items-center justify-center mb-2">
-                            <Ionicons
-                                name="arrow-up"
-                                size={16}
-                                color={isDarkMode ? "#fca5a5" : "#ef4444"}
-                            />
-                        </View>
-                        <Text className="text-gray-500 dark:text-gray-400">Expenses</Text>
-                        <Text className="text-lg font-bold text-gray-900 dark:text-white">
-                            $0.00
-                        </Text>
-                    </View>
-                </View>
-
-                <View className="bg-gray-50 dark:bg-gray-800 p-6 rounded-2xl w-full max-w-sm">
-                    <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-xl font-semibold text-gray-800 dark:text-white">
-                            Recent Transactions
-                        </Text>
-                        <Text className="text-blue-600 dark:text-blue-400">See All</Text>
-                    </View>
-
-                    <View className="items-center py-6">
-                        <Text className="text-gray-500 dark:text-gray-400 text-center">
-                            Connect your bank account to see your transactions
-                        </Text>
-                    </View>
-                </View>
-            </View>
-        </ScreenLayout>
+                    ))}
+                </Card.Content>
+            </Card>
+        </ScrollView>
     );
 }

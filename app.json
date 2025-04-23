@@ -11,7 +11,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cyberbeans.perfin",
-      "associatedDomains": ["applinks:cdn.plaid.com"]
+      "associatedDomains": ["applinks:cdn.plaid.com"],
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
