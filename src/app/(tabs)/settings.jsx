@@ -1,4 +1,4 @@
-// src/app/(tabs)/settings.jsx - Updated navigation routes
+// src/app/(tabs)/settings.jsx
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { ScreenLayout } from "@/components/layouts/ScreenLayout";
@@ -6,47 +6,35 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/store/AuthContext";
-import { usePlaid } from "@/store/PlaidContext";
 
 export default function SettingsScreen() {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === "dark";
     const router = useRouter();
-    const { user, isAuthenticated, logout } = useAuth();
-    const { linkedStatus, isLoading, refreshData } = usePlaid();
+    const { userData, logout, isAuthenticated } = useAuth();
 
     const handleConnectBank = () => {
-        console.log('Connect Bank button pressed');
-
-        if (!isAuthenticated) {
-            Alert.alert(
-                'Login Required',
-                'You need to login before connecting your bank account.',
-                [
-                    { text: 'Login', onPress: () => router.push('/auth/login') },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
-            return;
-        }
-
         router.push('/connect-bank');
     };
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-            // Refresh Plaid data after logout
-            refreshData();
-            Alert.alert('Success', 'You have been logged out successfully');
-        } catch (error) {
-            console.error('Logout error:', error);
-            Alert.alert('Error', 'Failed to log out. Please try again.');
-        }
-    };
-
-    const handleLogin = () => {
-        router.push('/auth/login');
+    const handleLogout = () => {
+        Alert.alert(
+            "Logout",
+            "Are you sure you want to logout?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Logout",
+                    onPress: async () => {
+                        await logout();
+                        router.replace('/login');
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -61,86 +49,12 @@ export default function SettingsScreen() {
                             color={isDarkMode ? "#93c5fd" : "#3b82f6"}
                         />
                     </View>
-                    {isAuthenticated && user ? (
-                        <>
-                            <Text className="text-xl font-bold text-gray-800 dark:text-white">
-                                {user.username}
-                            </Text>
-                            <Text className="text-gray-500 dark:text-gray-400">
-                                {user.email}
-                            </Text>
-                        </>
-                    ) : (
-                        <>
-                            <Text className="text-xl font-bold text-gray-800 dark:text-white">
-                                Guest
-                            </Text>
-                            <Text className="text-gray-500 dark:text-gray-400">
-                                Not logged in
-                            </Text>
-                        </>
-                    )}
-                </View>
-
-                {/* Authentication Section */}
-                <View className="mb-6">
-                    <Text className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
-                        Account
+                    <Text className="text-xl font-bold text-gray-800 dark:text-white">
+                        {userData?.username || "User"}
                     </Text>
-
-                    {isAuthenticated ? (
-                        <TouchableOpacity
-                            className="flex-row items-center p-4 mb-3 bg-white dark:bg-gray-800 rounded-xl"
-                            onPress={handleLogout}
-                        >
-                            <View className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-800 items-center justify-center mr-3">
-                                <Ionicons
-                                    name="log-out-outline"
-                                    size={20}
-                                    color={isDarkMode ? "#fca5a5" : "#ef4444"}
-                                />
-                            </View>
-                            <View className="flex-1">
-                                <Text className="font-medium text-gray-800 dark:text-white">
-                                    Logout
-                                </Text>
-                                <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                                    Sign out of your account
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={20}
-                                color={isDarkMode ? "#9ca3af" : "#6b7280"}
-                            />
-                        </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity
-                            className="flex-row items-center p-4 mb-3 bg-white dark:bg-gray-800 rounded-xl"
-                            onPress={handleLogin}
-                        >
-                            <View className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-800 items-center justify-center mr-3">
-                                <Ionicons
-                                    name="log-in-outline"
-                                    size={20}
-                                    color={isDarkMode ? "#86efac" : "#22c55e"}
-                                />
-                            </View>
-                            <View className="flex-1">
-                                <Text className="font-medium text-gray-800 dark:text-white">
-                                    Login
-                                </Text>
-                                <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                                    Sign in to your account
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={20}
-                                color={isDarkMode ? "#9ca3af" : "#6b7280"}
-                            />
-                        </TouchableOpacity>
-                    )}
+                    <Text className="text-gray-500 dark:text-gray-400">
+                        {userData?.email || "user@example.com"}
+                    </Text>
                 </View>
 
                 {/* Connected Accounts Section */}
@@ -165,9 +79,7 @@ export default function SettingsScreen() {
                                 Bank Accounts
                             </Text>
                             <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                                {linkedStatus
-                                    ? "Manage your connected accounts"
-                                    : "Connect your bank accounts"}
+                                Manage your connected bank accounts
                             </Text>
                         </View>
                         <Ionicons
@@ -199,7 +111,33 @@ export default function SettingsScreen() {
                                 Appearance
                             </Text>
                             <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                                {isDarkMode ? "Dark" : "Light"} mode
+                                {isDarkMode ? "Dark" : "Light"} mode (set by system)
+                            </Text>
+                        </View>
+                        <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={isDarkMode ? "#9ca3af" : "#6b7280"}
+                        />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="flex-row items-center p-4 mb-3 bg-white dark:bg-gray-800 rounded-xl"
+                        onPress={handleLogout}
+                    >
+                        <View className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-800 items-center justify-center mr-3">
+                            <Ionicons
+                                name="log-out-outline"
+                                size={20}
+                                color={isDarkMode ? "#fca5a5" : "#ef4444"}
+                            />
+                        </View>
+                        <View className="flex-1">
+                            <Text className="font-medium text-gray-800 dark:text-white">
+                                Logout
+                            </Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                                Sign out of your account
                             </Text>
                         </View>
                         <Ionicons

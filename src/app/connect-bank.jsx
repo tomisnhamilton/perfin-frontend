@@ -1,6 +1,6 @@
 // src/app/connect-bank.jsx
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlaid } from '@/store/PlaidContext';
 import { useAuth } from '@/store/AuthContext';
@@ -8,91 +8,86 @@ import { useRouter } from 'expo-router';
 
 export default function ConnectBankScreen() {
     const { linkedStatus, isLoading } = usePlaid();
-    const { isAuthenticated } = useAuth();
+    const { userData, isAuthenticated } = useAuth();
     const router = useRouter();
-
-    // Make sure user is logged in
-    React.useEffect(() => {
-        if (!isAuthenticated) {
-            Alert.alert(
-                'Login Required',
-                'You need to log in before connecting your bank account.',
-                [
-                    { text: 'Log In', onPress: () => router.replace('/auth/login') },
-                    { text: 'Cancel', onPress: () => router.replace('/(tabs)/dashboard'), style: 'cancel' }
-                ]
-            );
-        }
-    }, [isAuthenticated]);
 
     const handleConnect = () => {
         if (!isAuthenticated) {
-            Alert.alert(
-                'Login Required',
-                'You need to log in before connecting your bank account.',
-                [
-                    { text: 'Log In', onPress: () => router.push('/auth/login') },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
+            // If not authenticated, redirect to login
+            router.replace('/login');
             return;
         }
 
+        // Navigate to Plaid Link
         router.push('/plaid-link');
     };
 
-    const handleViewDashboard = () => {
-        router.replace('/(tabs)/dashboard');
+    const handleViewAccounts = () => {
+        router.push('/(tabs)/accounts');
     };
 
     if (isLoading) {
         return (
-            <View className="flex-1 justify-center items-center bg-white">
-                <ActivityIndicator size="large" />
-                <Text className="mt-2">Checking account status...</Text>
-            </View>
-        );
-    }
-
-    if (!isAuthenticated) {
-        return (
-            <View className="flex-1 justify-center items-center bg-white px-4">
-                <Ionicons name="lock-closed-outline" size={48} color="black" />
-                <Text className="text-xl font-semibold mt-4">Login Required</Text>
-                <Text className="text-center mt-2 text-gray-600">
-                    Please log in before connecting your bank account.
-                </Text>
-
-                <TouchableOpacity
-                    className="mt-6 bg-blue-600 px-6 py-3 rounded-full"
-                    onPress={() => router.push('/auth/login')}
-                >
-                    <Text className="text-white font-bold text-lg">
-                        Log In
-                    </Text>
-                </TouchableOpacity>
+            <View className="flex-1 justify-center items-center bg-white dark:bg-gray-900">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="mt-2 text-gray-800 dark:text-gray-200">Checking account status...</Text>
             </View>
         );
     }
 
     return (
-        <View className="flex-1 justify-center items-center bg-white px-4">
-            <Ionicons name="lock-closed-outline" size={48} color="black" />
-            <Text className="text-xl font-semibold mt-4">Secure Bank Connection</Text>
-            <Text className="text-center mt-2 text-gray-600">
-                {linkedStatus
-                    ? "Your account is already linked. You can view your data on the dashboard."
-                    : "We use Plaid to securely link your bank account. Click below to get started."}
+        <View className="flex-1 justify-center items-center bg-white dark:bg-gray-900 px-4">
+            <Ionicons name="lock-closed-outline" size={48} color="#3b82f6" />
+
+            <Text className="text-xl font-semibold mt-4 text-gray-800 dark:text-white">
+                Secure Bank Connection
             </Text>
 
-            <TouchableOpacity
-                className="mt-6 bg-blue-600 px-6 py-3 rounded-full"
-                onPress={linkedStatus ? handleViewDashboard : handleConnect}
-            >
-                <Text className="text-white font-bold text-lg">
-                    {linkedStatus ? "View Dashboard" : "Connect Bank"}
+            <Text className="text-center mt-2 text-gray-600 dark:text-gray-300">
+                {linkedStatus
+                    ? "Your account is already linked. You can view your financial data or link additional accounts."
+                    : "We use Plaid to securely link your bank account. Your credentials are never stored on our servers."}
+            </Text>
+
+            {linkedStatus ? (
+                <View className="w-full mt-6 space-y-3">
+                    <TouchableOpacity
+                        className="bg-blue-600 px-6 py-3 rounded-xl w-full"
+                        onPress={handleViewAccounts}
+                    >
+                        <Text className="text-white font-bold text-center text-lg">
+                            View My Accounts
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-200 dark:bg-gray-700 px-6 py-3 rounded-xl w-full"
+                        onPress={handleConnect}
+                    >
+                        <Text className="text-gray-800 dark:text-white font-bold text-center text-lg">
+                            Link Another Account
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <TouchableOpacity
+                    className="mt-6 bg-blue-600 px-6 py-3 rounded-xl w-full"
+                    onPress={handleConnect}
+                >
+                    <Text className="text-white font-bold text-center text-lg">
+                        Connect Bank Account
+                    </Text>
+                </TouchableOpacity>
+            )}
+
+            <View className="mt-8 bg-blue-50 dark:bg-blue-900/50 p-4 rounded-xl w-full">
+                <Text className="text-sm text-gray-600 dark:text-gray-300">
+                    🔒 Your financial data is encrypted and secure.
                 </Text>
-            </TouchableOpacity>
+                <Text className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    📊 Connect your accounts to track spending, monitor balances, and more.
+                </Text>
+            </View>
         </View>
     );
 }

@@ -14,102 +14,42 @@ export const usePlaid = () => {
 export function PlaidProvider({ children }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [allAccounts, setAllAccounts] = useState([]);
-    const [userAccounts, setUserAccounts] = useState([]);
-    const [allTransactions, setAllTransactions] = useState([]);
-    const [userTransactions, setUserTransactions] = useState([]);
+    const [accounts, setAccounts] = useState([]);
+    const [transactions, setTransactions] = useState([]);
     const [linkedStatus, setLinkedStatus] = useState(false);
 
-    // Get the auth context to access the current user
-    const { user, isAuthenticated } = useAuth();
+    // Get auth context
+    const { userData, userToken, isAuthenticated } = useAuth();
 
-    // Get the current user's ID, or use demo if not authenticated
-    const getCurrentUserId = () => {
-        if (isAuthenticated && user && user.id) {
-            return user.id;
+    // When auth status changes, refresh plaid data
+    useEffect(() => {
+        console.log('User authentication changed, refreshing data...');
+        if (isAuthenticated) {
+            refreshData();
+        } else {
+            // Reset Plaid data when logged out
+            setAccounts([]);
+            setTransactions([]);
+            setLinkedStatus(false);
+            setIsLoading(false);
         }
-        return 'demo-user-id';
-    };
-
-    // Filter accounts to only show those belonging to the current user
-    const filterAccountsForUser = async (accounts, userId) => {
-        if (!userId || !accounts || accounts.length === 0) return [];
-
-        try {
-            // Fetch user items
-            const response = await fetch(`http://localhost:3000/api/db/items?user_id=${userId}`, {
-                headers: { 'X-User-ID': userId }
-            });
-
-            if (!response.ok) {
-                console.warn('Failed to fetch user items');
-                return [];
-            }
-
-            const userItems = await response.json();
-            const userItemIds = userItems.map(item => item.item_id);
-
-            // Filter accounts that belong to user's items
-            return accounts.filter(account => {
-                // Make sure account has an item_id property
-                return account.item_id && userItemIds.includes(account.item_id);
-            });
-        } catch (err) {
-            console.error('Error filtering accounts for user:', err);
-            return [];
-        }
-    };
-
-    // Filter transactions to only show those belonging to the current user
-    const filterTransactionsForUser = async (transactions, userId) => {
-        if (!userId || !transactions || transactions.length === 0) return [];
-
-        try {
-            // Fetch user items
-            const response = await fetch(`http://localhost:3000/api/db/items?user_id=${userId}`, {
-                headers: { 'X-User-ID': userId }
-            });
-
-            if (!response.ok) {
-                console.warn('Failed to fetch user items');
-                return [];
-            }
-
-            const userItems = await response.json();
-            const userItemIds = userItems.map(item => item.item_id);
-
-            // Filter transactions that belong to user's items
-            return transactions.filter(transaction => {
-                // Make sure transaction has an item_id property
-                return transaction.item_id && userItemIds.includes(transaction.item_id);
-            });
-        } catch (err) {
-            console.error('Error filtering transactions for user:', err);
-            return [];
-        }
-    };
+    }, [isAuthenticated, userToken]);
 
     const fetchAccounts = async () => {
         try {
             setIsLoading(true);
-            // Use the existing function to get all accounts
-            const data = await plaidService.getAccounts();
-            setAllAccounts(data);
+            const userId = userData?.id;
+            console.log('Fetching accounts from:', `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/db/accounts${userId ? `?user_id=${userId}` : ''}`);
 
-            // Filter accounts for the current user
-            const userId = getCurrentUserId();
-            const filtered = await filterAccountsForUser(data, userId);
-            setUserAccounts(filtered);
+            const data = await plaidService.getAccounts(userToken);
+            console.log('Retrieved', data?.length || 0, 'accounts');
 
-            // Set linked status based on user accounts
-            const isLinked = filtered && filtered.length > 0;
-            setLinkedStatus(isLinked);
-
-            return filtered;
+            setAccounts(data || []);
+            setLinkedStatus(data?.length > 0);
+            return data || [];
         } catch (err) {
             console.warn('Error fetching accounts:', err);
-            setAllAccounts([]);
-            setUserAccounts([]);
+            setAccounts([]);
             setLinkedStatus(false);
             return [];
         } finally {
@@ -120,20 +60,15 @@ export function PlaidProvider({ children }) {
     const fetchTransactions = async () => {
         try {
             setIsLoading(true);
-            // Use the existing function to get all transactions
-            const data = await plaidService.getTransactions();
-            setAllTransactions(data);
+            const userId = userData?.id;
+            console.log(`🔍 Raw response from ${process.env.EXPO_PUBLIC_API_BASE_URL}/api/db/transactions${userId ? `?user_id=${userId}` : ''} → ${JSON.stringify(await plaidService.getTransactions(userToken))}`);
 
-            // Filter transactions for the current user
-            const userId = getCurrentUserId();
-            const filtered = await filterTransactionsForUser(data, userId);
-            setUserTransactions(filtered);
-
-            return filtered;
+            const data = await plaidService.getTransactions(userToken);
+            setTransactions(data || []);
+            return data || [];
         } catch (err) {
             console.warn('Error fetching transactions:', err);
-            setAllTransactions([]);
-            setUserTransactions([]);
+            setTransactions([]);
             return [];
         } finally {
             setIsLoading(false);
@@ -141,11 +76,14 @@ export function PlaidProvider({ children }) {
     };
 
     const refreshData = async () => {
+        console.log('🔁 Trying to fetch backend data...');
         setError(null);
         setIsLoading(true);
         try {
             const accounts = await fetchAccounts();
-            if (accounts.length > 0) await fetchTransactions();
+            if (accounts.length > 0) {
+                await fetchTransactions();
+            }
         } catch (err) {
             console.error('Error refreshing data:', err);
             setError('Unable to load your financial data.');
@@ -154,22 +92,12 @@ export function PlaidProvider({ children }) {
         }
     };
 
-    // Refresh data when user changes
-    useEffect(() => {
-        console.log('User authentication changed, refreshing data...');
-        refreshData();
-    }, [isAuthenticated, user]);
-
-    // Make sure to use the filtered accounts and transactions for the UI
     const value = {
         isLoading,
         error,
-        accounts: userAccounts, // Use filtered accounts
-        transactions: userTransactions, // Use filtered transactions
-        allAccounts, // Provide access to all accounts for admin purposes
-        allTransactions, // Provide access to all transactions for admin purposes
+        accounts,
+        transactions,
         linkedStatus,
-        getCurrentUserId,
         refreshData,
         fetchAccounts,
         fetchTransactions,
