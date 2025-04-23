@@ -26,19 +26,18 @@ export const getLinkToken = async (userToken, userId) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to get link token: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Failed to get link token: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
         console.log('Received link token successfully');
-        console.log('Received token:', data.link_token);
         return data.link_token;
     } catch (error) {
         console.error('Error getting link token:', error);
         throw error;
     }
 };
-
 
 /**
  * Exchange a public token for an access token via our backend
@@ -66,10 +65,24 @@ export const exchangePublicToken = async (public_token, userToken, userId) => {
             }),
         });
 
-        if (!res.ok) throw new Error("Token exchange failed");
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Token exchange failed: ${res.status} - ${errorText}`);
+        }
 
         const data = await res.json();
         console.log("Token exchange successful:", data);
+
+        // After token exchange, we need to trigger initial data sync
+        console.log("Triggering initial data sync with Plaid...");
+
+        // Trigger backend to fetch all data from Plaid
+        await Promise.all([
+            triggerPlaidSync('accounts', userToken, userId),
+            triggerPlaidSync('transactions', userToken, userId),
+            triggerPlaidSync('balances', userToken, userId)
+        ]);
+
         return data;
     } catch (error) {
         console.error("Error exchanging public token:", error);
@@ -77,6 +90,35 @@ export const exchangePublicToken = async (public_token, userToken, userId) => {
     }
 };
 
+/**
+ * Trigger a specific Plaid API endpoint to sync data
+ */
+const triggerPlaidSync = async (endpoint, userToken, userId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': userToken ? `Bearer ${userToken}` : '',
+            },
+            body: JSON.stringify({
+                user_id: userId
+            }),
+        });
+
+        if (!response.ok) {
+            console.warn(`Warning: Failed to sync ${endpoint}`);
+            return null;
+        }
+
+        const data = await response.json();
+        console.log(`✅ Successfully synced ${endpoint}`);
+        return data;
+    } catch (err) {
+        console.error(`Error syncing ${endpoint}:`, err);
+        return null;
+    }
+};
 
 /**
  * Fetch transactions from our backend server
@@ -94,19 +136,22 @@ export const getTransactions = async (userToken) => {
             headers['Authorization'] = `Bearer ${userToken}`;
         }
 
+        console.log(`Fetching transactions from: ${API_BASE_URL}/api/db/transactions${queryParams}`);
         const response = await fetch(`${API_BASE_URL}/api/db/transactions${queryParams}`, {
             headers
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to get transactions: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Failed to get transactions: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
+        console.log(`Retrieved ${data.length} transactions`);
         return data;
     } catch (error) {
         console.error('Error getting transactions:', error);
-        return [];
+        throw error;
     }
 };
 
@@ -125,12 +170,14 @@ export const getAccounts = async (userToken) => {
             headers['Authorization'] = `Bearer ${userToken}`;
         }
 
+        console.log(`Fetching accounts from: ${API_BASE_URL}/api/db/accounts${queryParams}`);
         const response = await fetch(`${API_BASE_URL}/api/db/accounts${queryParams}`, {
             headers
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to get accounts: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Failed to get accounts: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
@@ -138,7 +185,7 @@ export const getAccounts = async (userToken) => {
         return data;
     } catch (error) {
         console.error('Error getting accounts:', error);
-        return [];
+        throw error;
     }
 };
 

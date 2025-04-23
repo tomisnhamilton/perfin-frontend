@@ -39,18 +39,25 @@ export function PlaidProvider({ children }) {
         try {
             setIsLoading(true);
             const userId = userData?.id;
-            console.log('Fetching accounts from:', `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/db/accounts${userId ? `?user_id=${userId}` : ''}`);
+            console.log('Fetching accounts for user:', userId);
 
+            // Fetch accounts from backend
             const data = await plaidService.getAccounts(userToken);
             console.log('Retrieved', data?.length || 0, 'accounts');
 
-            setAccounts(data || []);
-            setLinkedStatus(data?.length > 0);
-            return data || [];
+            if (data && data.length > 0) {
+                setAccounts(data);
+                setLinkedStatus(true);
+                return data;
+            } else {
+                console.warn('No accounts found for user');
+                setAccounts([]);
+                return [];
+            }
         } catch (err) {
-            console.warn('Error fetching accounts:', err);
+            console.error('Error fetching accounts:', err);
+            setError('Failed to fetch account data. Please try again.');
             setAccounts([]);
-            setLinkedStatus(false);
             return [];
         } finally {
             setIsLoading(false);
@@ -61,13 +68,23 @@ export function PlaidProvider({ children }) {
         try {
             setIsLoading(true);
             const userId = userData?.id;
-            console.log(`🔍 Raw response from ${process.env.EXPO_PUBLIC_API_BASE_URL}/api/db/transactions${userId ? `?user_id=${userId}` : ''} → ${JSON.stringify(await plaidService.getTransactions(userToken))}`);
+            console.log('Fetching transactions for user:', userId);
 
+            // Fetch transactions from backend
             const data = await plaidService.getTransactions(userToken);
-            setTransactions(data || []);
-            return data || [];
+            console.log('Retrieved', data?.length || 0, 'transactions');
+
+            if (data && data.length > 0) {
+                setTransactions(data);
+                return data;
+            } else {
+                console.warn('No transactions found for user');
+                setTransactions([]);
+                return [];
+            }
         } catch (err) {
-            console.warn('Error fetching transactions:', err);
+            console.error('Error fetching transactions:', err);
+            setError('Failed to fetch transaction data. Please try again.');
             setTransactions([]);
             return [];
         } finally {
@@ -76,17 +93,60 @@ export function PlaidProvider({ children }) {
     };
 
     const refreshData = async () => {
-        console.log('🔁 Trying to fetch backend data...');
+        console.log('🔄 Refreshing Plaid data...');
         setError(null);
         setIsLoading(true);
+
         try {
+            // First check if user has linked accounts
             const accounts = await fetchAccounts();
-            if (accounts.length > 0) {
+
+            if (accounts && accounts.length > 0) {
+                // If accounts exist, fetch transactions
                 await fetchTransactions();
+                setLinkedStatus(true);
+            } else {
+                // If no accounts found, user hasn't linked yet
+                setLinkedStatus(false);
             }
         } catch (err) {
             console.error('Error refreshing data:', err);
             setError('Unable to load your financial data.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Function to initiate a full sync with Plaid
+    const syncWithPlaid = async () => {
+        console.log('🔄 Starting full Plaid sync...');
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Make API call to backend to trigger Plaid data sync
+            const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/sync_plaid_data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userToken}`
+                },
+                body: JSON.stringify({
+                    user_id: userData?.id
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to sync with Plaid');
+            }
+
+            // Refresh our local data
+            await refreshData();
+            return true;
+        } catch (err) {
+            console.error('Error during Plaid sync:', err);
+            setError('Failed to sync with Plaid. Please try again later.');
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -101,6 +161,7 @@ export function PlaidProvider({ children }) {
         refreshData,
         fetchAccounts,
         fetchTransactions,
+        syncWithPlaid,
         setIsLinked: setLinkedStatus,
     };
 

@@ -159,6 +159,45 @@ export function AuthProvider({ children }) {
         }
     };
 
+    const deleteAccount = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            if (!userToken) {
+                throw new Error('Not authenticated');
+            }
+
+            const response = await fetch(`${API_BASE_URL}/api/db/auth/delete-account`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userToken}`
+                },
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to delete account');
+            }
+
+            // Successful deletion - clear all local data
+            await AsyncStorage.clear();
+            setUserToken(null);
+            setUserData(null);
+
+            return true;
+        } catch (e) {
+            console.error('Account deletion error:', e);
+            setError(e.message);
+            Alert.alert('Account Deletion Failed', e.message);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Provide auth context to the app
     return (
         <AuthContext.Provider value={{
@@ -170,6 +209,7 @@ export function AuthProvider({ children }) {
             login,
             logout,
             refreshUserData,
+            deleteAccount,
             isAuthenticated: !!userToken
         }}>
             {children}

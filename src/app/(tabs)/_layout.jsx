@@ -29,7 +29,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="dashboard"
                 options={{
-                     title: "Dashboard",
+                    title: "Dashboard",
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="home-outline" size={size} color={color} />
                     ),
@@ -41,6 +41,33 @@ export default function TabLayout() {
                     title: "Transactions",
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="list-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="accounts"
+                options={{
+                    title: "Accounts",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="wallet-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="balance"
+                options={{
+                    title: "Balance",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="analytics-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="recurring"
+                options={{
+                    title: "Recurring",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="calendar-outline" size={size} color={color} />
                     ),
                 }}
             />
