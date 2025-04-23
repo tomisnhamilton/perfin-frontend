@@ -4,20 +4,45 @@ import { ActivityIndicator, View, Text, TouchableOpacity, Alert } from 'react-na
 import { WebView } from 'react-native-webview';
 import * as plaidService from '@/services/plaidService';
 import { usePlaid } from '@/store/PlaidContext';
+import { useAuth } from '@/store/AuthContext';
 import { useRouter } from 'expo-router';
 
 export default function PlaidLink() {
     const [linkToken, setLinkToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const { setIsLinked, fetchAccounts, fetchTransactions, userId } = usePlaid();
+    const { setIsLinked, refreshData } = usePlaid();
+    const { user, isAuthenticated } = useAuth();
     const router = useRouter();
+
+    // Check if user is authenticated before proceeding
+    useEffect(() => {
+        if (!isAuthenticated) {
+            Alert.alert(
+                'Login Required',
+                'You need to log in before connecting your bank account.',
+                [
+                    {
+                        text: 'Log In',
+                        onPress: () => router.replace('/auth/login')
+                    },
+                    {
+                        text: 'Cancel',
+                        onPress: () => router.back(),
+                        style: 'cancel'
+                    }
+                ]
+            );
+        }
+    }, [isAuthenticated]);
 
     useEffect(() => {
         const init = async () => {
+            if (!isAuthenticated) return;
+
             try {
-                console.log('Fetching Plaid link token for user:', userId);
-                const token = await plaidService.getLinkToken(userId);
+                console.log('Fetching Plaid link token for user:', user.id);
+                const token = await plaidService.getLinkToken(user.id);
                 console.log('Received token:', token);
                 setLinkToken(token);
             } catch (err) {
@@ -27,8 +52,9 @@ export default function PlaidLink() {
                 setLoading(false);
             }
         };
+
         init();
-    }, [userId]);
+    }, [isAuthenticated, user]);
 
     const handleMessage = async (event) => {
         try {
@@ -47,33 +73,20 @@ export default function PlaidLink() {
                 setLoading(true);
 
                 try {
-                    // Pass the user ID to ensure proper association
-                    await plaidService.exchangePublicToken(public_token, userId);
+                    // Pass the user ID to associate the item with the user
+                    await plaidService.exchangePublicToken(public_token, user.id);
                     setIsLinked(true);
 
-                    // Delay fetching accounts to ensure Plaid has processed the data
+                    // Delay slightly to ensure Plaid has processed the data
                     setTimeout(async () => {
-                        try {
-                            console.log('Fetching linked accounts...');
-                            await fetchAccounts();
-
-                            console.log('Fetching transactions...');
-                            await fetchTransactions();
-
-                            console.log('Navigation to dashboard...');
-                            router.replace('/(tabs)/dashboard');
-                        } catch (fetchError) {
-                            console.error('Error fetching data:', fetchError);
-                            // Still navigate to dashboard even if fetching fails
-                            router.replace('/(tabs)/dashboard');
-                        }
-                    }, 1000);
+                        await refreshData();
+                        router.replace('/(tabs)/dashboard');
+                    }, 500);
                 } catch (err) {
                     console.error('Error exchanging token:', err);
                     setError('Failed to link your account. Please try again.');
                     setLoading(false);
 
-                    // Display a more detailed error message
                     Alert.alert(
                         'Connection Error',
                         'There was an error connecting to your bank. Please try again later.',
@@ -92,10 +105,11 @@ export default function PlaidLink() {
         setError(null);
         setLoading(true);
 
-        // Re-initialize
         const init = async () => {
+            if (!isAuthenticated) return;
+
             try {
-                const token = await plaidService.getLinkToken(userId);
+                const token = await plaidService.getLinkToken(user.id);
                 console.log('Received new token:', token);
                 setLinkToken(token);
             } catch (err) {
@@ -105,8 +119,24 @@ export default function PlaidLink() {
                 setLoading(false);
             }
         };
+
         init();
     };
+
+    if (!isAuthenticated) {
+        return (
+            <View className="flex-1 justify-center items-center p-6">
+                <Text className="text-xl font-bold mb-4">Login Required</Text>
+                <Text className="text-center mb-6">You need to log in before connecting your bank account.</Text>
+                <TouchableOpacity
+                    className="bg-blue-500 px-5 py-2 rounded-md"
+                    onPress={() => router.push('/auth/login')}
+                >
+                    <Text className="text-white font-medium">Go to Login</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     if (error) {
         return (
