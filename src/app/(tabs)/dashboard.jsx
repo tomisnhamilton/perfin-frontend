@@ -6,7 +6,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 
-// Simple bar chart component for weekly spending
+// Simple bar chart component for weekly spending - UPDATED to flip chart orientation
+// Replace the entire SimpleBarChart component with this implementation
 const SimpleBarChart = ({ data, height = 200 }) => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
@@ -20,40 +21,50 @@ const SimpleBarChart = ({ data, height = 200 }) => {
         );
     }
 
-    // Find min and max y values for scaling
+    // Find max y value for scaling
     const yValues = data.map(point => point.y);
     const maxY = Math.max(...yValues);
 
-    // Create a simple bar chart using View elements
+    // Calculate chart dimensions
+    const chartHeight = height - 30; // Reserve space for labels
+
     return (
         <View className="mt-4" style={{ height }}>
-            {/* Days of week labels */}
-            <View className="flex-row justify-between mb-2">
-                {data.map((point, i) => (
-                    <Text key={i} className="text-xs text-gray-500">
-                        {point.x}
-                    </Text>
-                ))}
-            </View>
-
-            {/* The chart */}
-            <View className="flex-1 border-l border-b border-gray-300 dark:border-gray-700">
-                <View className="flex-1 flex-row items-end relative">
+            {/* Chart container with border */}
+            <View style={{ height: chartHeight }} className="relative border-l border-b border-gray-300 dark:border-gray-700">
+                {/* Bars container - taking full height and width */}
+                <View className="absolute inset-0 flex-row">
                     {data.map((point, i) => {
+                        // Calculate height as percentage of max value
                         const barHeight = maxY > 0 ? (point.y / maxY) * 100 : 0;
+
                         return (
-                            <View key={i} className="flex-1 items-center" style={{ height: '100%' }}>
-                                <View
-                                    className="bg-blue-500 rounded-t-sm w-6"
-                                    style={{
-                                        height: `${barHeight}%`,
-                                        minHeight: barHeight > 0 ? 4 : 0
-                                    }}
-                                />
+                            <View key={i} className="flex-1 items-center" style={{ position: 'relative' }}>
+                                {barHeight > 0 && (
+                                    <View
+                                        className="bg-blue-500 w-8 absolute bottom-0"
+                                        style={{
+                                            height: `${barHeight}%`,
+                                            borderTopLeftRadius: 2,
+                                            borderTopRightRadius: 2
+                                        }}
+                                    />
+                                )}
                             </View>
                         );
                     })}
                 </View>
+            </View>
+
+            {/* Day labels row - completely separate from chart area */}
+            <View className="flex-row mt-2">
+                {data.map((point, i) => (
+                    <View key={i} className="flex-1 items-center">
+                        <Text className="text-xs text-gray-500">
+                            {point.x}
+                        </Text>
+                    </View>
+                ))}
             </View>
         </View>
     );
@@ -188,11 +199,37 @@ export default function DashboardScreen() {
         );
     }
 
-    // 1. Calculate total balance
+    const getAccountBalance = (account) => {
+        if (!account || !account.balances) return 0;
+
+        // For credit accounts, we need to negate the balance since a positive
+        // balance on a credit account means you owe money (a liability)
+        if (account.type === 'credit') {
+            // Use available balance if present, otherwise use current balance
+            const balance = account.balances.available !== undefined
+                ? account.balances.available
+                : (account.balances.current !== undefined ? account.balances.current : 0);
+
+            // Negate credit card balances so they're displayed correctly in the total
+            return -Math.abs(balance);
+        }
+        // For loan accounts or other liabilities, also negate
+        else if (account.type === 'loan' || account.type === 'mortgage') {
+            const balance = account.balances.current || 0;
+            return -Math.abs(balance);
+        }
+        // For regular accounts (checking, savings, etc.)
+        else {
+            // Use available balance if present, otherwise use current balance
+            return account.balances.available !== undefined
+                ? account.balances.available
+                : (account.balances.current !== undefined ? account.balances.current : 0);
+        }
+    };
+
+    // Replace the totalBalance calculation with this (in the appropriate place)
     const totalBalance = safeAccounts.reduce((sum, acc) => {
-        // Check if acc.balances is defined and has current property
-        const balance = acc?.balances?.current || acc?.balances?.available || 0;
-        return sum + (typeof balance === 'number' ? balance : 0);
+        return sum + getAccountBalance(acc);
     }, 0);
 
     // 2. Weekly transaction totals
@@ -211,9 +248,11 @@ export default function DashboardScreen() {
             return txDate === day;
         });
 
+        // UPDATED: For expenses only (positive amount in Plaid = money out)
         const sum = dailyTransactions.reduce((total, tx) => {
             if (!tx || tx.amount === undefined) return total;
-            const amount = Math.abs(tx.amount);
+            // Only add positive amounts (expenses) for the weekly spending chart
+            const amount = tx.amount > 0 ? tx.amount : 0;
             return total + (isNaN(amount) ? 0 : amount);
         }, 0);
 
@@ -241,9 +280,8 @@ export default function DashboardScreen() {
             return false;
         }
 
-        // Only include negative amounts (expenses)
-        const amount = tx.amount || 0;
-        return txDate && txDate >= past && amount < 0 && !isNaN(amount);
+        // Only include positive amounts (expenses in Plaid's convention)
+        return txDate && txDate >= past && tx.amount > 0;
     });
 
     const grouped = {};
@@ -278,7 +316,6 @@ export default function DashboardScreen() {
         // Sort by value (descending)
         .sort((a, b) => b.y - a.y);
 
-    // Format currency function
     const formatCurrency = (amount) => {
         if (amount === undefined || amount === null || isNaN(amount)) return '$0.00';
         return `$${Math.abs(parseFloat(amount)).toFixed(2)}`;
@@ -310,15 +347,19 @@ export default function DashboardScreen() {
         >
             {/* Balance Header Section */}
             <View className="p-6 bg-blue-600 dark:bg-blue-800">
-                <Text className="text-blue-100">Total Balance</Text>
+                <Text className="text-blue-100">Net Worth</Text>
                 <Text className="text-3xl font-bold text-white mb-2">
-                    ${totalBalance.toFixed(2)}
+                    {totalBalance >= 0
+                        ? `$${totalBalance.toFixed(2)}`
+                        : `-$${Math.abs(totalBalance).toFixed(2)}`}
                 </Text>
-                <View className="flex-row items-center">
-                    <Ionicons name="wallet-outline" size={16} color="#93c5fd" />
-                    <Text className="ml-1 text-blue-100">
-                        {safeAccounts.length} {safeAccounts.length === 1 ? 'account' : 'accounts'} connected
-                    </Text>
+                <View className="flex-row justify-between items-center">
+                    <View className="flex-row items-center">
+                        <Ionicons name="wallet-outline" size={16} color="#93c5fd" />
+                        <Text className="ml-1 text-blue-100">
+                            {safeAccounts.length} {safeAccounts.length === 1 ? 'account' : 'accounts'} connected
+                        </Text>
+                    </View>
                 </View>
             </View>
 
@@ -340,18 +381,20 @@ export default function DashboardScreen() {
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                         </View>
 
-                        {safeAccounts.slice(0, 2).map((account, index) => (
+                        {safeAccounts.slice(0, 3).map((account, index) => (
                             <View key={index} className="flex-row justify-between items-center py-2">
                                 <Text className="text-gray-600 dark:text-gray-300">{account?.name || 'Account'}</Text>
-                                <Text className="font-medium text-gray-800 dark:text-gray-100">
-                                    ${((account?.balances?.current || account?.balances?.available || 0).toFixed(2))}
+                                <Text className={`font-medium ${account.type === 'credit' || account.type === 'loan' ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                                    {account.type === 'credit' || account.type === 'loan'
+                                        ? `-$${Math.abs((account?.balances?.current || account?.balances?.available || 0)).toFixed(2)}`
+                                        : `$${(account?.balances?.current || account?.balances?.available || 0).toFixed(2)}`}
                                 </Text>
                             </View>
                         ))}
 
-                        {safeAccounts.length > 2 && (
+                        {safeAccounts.length > 3 && (
                             <Text className="mt-1 text-sm text-blue-600 dark:text-blue-400">
-                                + {safeAccounts.length - 2} more accounts
+                                + {safeAccounts.length - 3} more accounts
                             </Text>
                         )}
                     </TouchableOpacity>
@@ -424,8 +467,9 @@ export default function DashboardScreen() {
                                         <Text className="font-medium text-gray-800 dark:text-gray-100">{payment.name}</Text>
                                         <Text className="text-xs text-gray-500">{formatDate(payment.date)}</Text>
                                     </View>
+                                    {/* UPDATED: Format amount correctly based on Plaid convention */}
                                     <Text className="font-medium text-red-600 dark:text-red-400">
-                                        {formatCurrency(payment.amount)}
+                                        {payment.amount > 0 ? `-${formatCurrency(payment.amount)}` : `+${formatCurrency(Math.abs(payment.amount))}`}
                                     </Text>
                                 </View>
                             ))

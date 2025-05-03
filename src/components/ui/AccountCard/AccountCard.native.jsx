@@ -1,3 +1,4 @@
+// src/components/ui/AccountCard/AccountCard.native.jsx
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Card } from 'react-native-paper';
@@ -46,15 +47,27 @@ function getAccountColor(type, isDarkMode) {
 }
 
 // Format balance with proper sign and decimals
-function formatBalance(balances) {
-    if (!balances) return '$0.00';
+function formatBalance(account) {
+    if (!account || !account.balances) return '$0.00';
 
-    // Try available first, then current, then 0
-    const balance = balances.available !== undefined ?
-        balances.available :
-        (balances.current !== undefined ? balances.current : 0);
+    let displayBalance;
+    const isDebt = account.type === 'credit' || account.type === 'loan' || account.type === 'mortgage';
 
-    return `$${Math.abs(balance).toFixed(2)}`;
+    // Try current first
+    const rawBalance = account.balances.current !== undefined ?
+        account.balances.current :
+        (account.balances.available !== undefined ? account.balances.current : 0);
+
+    // For credit cards and loans, show the amount owed as a positive number
+    // but we'll add a prefix to indicate it's a debt
+    displayBalance = Math.abs(rawBalance);
+
+    // If this is a debt account and has a non-zero balance
+    if (isDebt && displayBalance > 0) {
+        return `-$${displayBalance.toFixed(2)}`;
+    }
+
+    return `$${displayBalance.toFixed(2)}`;
 }
 
 export default function AccountCard({ account }) {
@@ -75,12 +88,16 @@ export default function AccountCard({ account }) {
     const { name, type, subtype, balances } = account;
     const iconName = getAccountIcon(type, subtype);
     const iconColor = getAccountColor(type, isDarkMode);
+    const isDebt = type === 'credit' || type === 'loan' || type === 'mortgage';
+
+    const balanceColor = isDebt ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-white';
 
     return (
         <Card className="mb-2 overflow-hidden">
             <Card.Content>
                 <View className="flex-row items-center">
-                    <View className={`w-10 h-10 rounded-full items-center justify-center bg-${iconColor}-100 dark:bg-${iconColor}-900 mr-3`}>
+                    <View className={`w-10 h-10 rounded-full items-center justify-center mr-3`}
+                          style={{backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9'}}>
                         <Ionicons name={iconName} size={20} color={iconColor} />
                     </View>
 
@@ -95,8 +112,8 @@ export default function AccountCard({ account }) {
                     </View>
 
                     <View>
-                        <Text className="font-bold text-gray-800 dark:text-white text-right">
-                            {formatBalance(balances)}
+                        <Text className={`font-bold ${balanceColor} text-right`}>
+                            {formatBalance(account)}
                         </Text>
                         <Text className="text-gray-500 dark:text-gray-400 text-xs text-right">
                             {account.mask ? `****${account.mask}` : ''}

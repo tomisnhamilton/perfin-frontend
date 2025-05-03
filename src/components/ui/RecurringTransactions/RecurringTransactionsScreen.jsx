@@ -1,7 +1,7 @@
-// src/components/ui/RecurringTransactions/RecurringTransactionsScreen.jsx - Fixed with amount handling
-import React, { useState, useEffect } from 'react';
+// src/components/ui/RecurringTransactions/RecurringTransactionsScreen.jsx
+import React, { useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Card, Title, Divider } from 'react-native-paper';
+import { Card } from 'react-native-paper';
 import { useDB } from '@/store/DBContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
@@ -23,26 +23,32 @@ const formatFrequency = (frequency) => {
     return formatted;
 };
 
+// Helper function to safely extract amount from the average_amount object or value
+const extractAmount = (amountField) => {
+    if (!amountField) return 0;
+
+    // If it's already a number, return it
+    if (typeof amountField === 'number') return amountField;
+
+    // If it's an object with amount property, return that
+    if (amountField.amount !== undefined) return parseFloat(amountField.amount);
+
+    // Try to parse it as a number if it's a string
+    if (typeof amountField === 'string') {
+        const parsed = parseFloat(amountField);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    // Default fallback
+    return 0;
+};
+
 export default function RecurringTransactionsScreen() {
-    const { recurring, upcomingTransactions, loading, refetch } = useDB();
+    const { recurring, loading, refetch } = useDB();
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState('upcoming'); // upcoming, income, expenses
+    const [activeTab, setActiveTab] = useState('expenses'); // expenses, income - changed default to expenses
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
-
-    // // Debug the recurring data structure
-    // useEffect(() => {
-    //     //console.log('Current recurring data structure:', JSON.stringify(recurring, null, 2));
-    //     //console.log('Upcoming transactions:', upcomingTransactions?.length || 0);
-    //
-    //     // Log a sample inflow and outflow to check amount values
-    //     if (recurring?.inflow_streams?.length) {
-    //         console.log('Sample inflow:', JSON.stringify(recurring.inflow_streams[0], null, 2));
-    //     }
-    //     if (recurring?.outflow_streams?.length) {
-    //         console.log('Sample outflow:', JSON.stringify(recurring.outflow_streams[0], null, 2));
-    //     }
-    // }, [recurring, upcomingTransactions]);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -53,7 +59,6 @@ export default function RecurringTransactionsScreen() {
     // Safe access to data
     const safeInflow = recurring?.inflow_streams || [];
     const safeOutflow = recurring?.outflow_streams || [];
-    const safeUpcoming = upcomingTransactions || [];
 
     // If still loading, show a loading indicator
     if (loading && !refreshing) {
@@ -69,12 +74,15 @@ export default function RecurringTransactionsScreen() {
     const monthlyOutflow = safeOutflow.reduce((sum, stream) => {
         if (!stream) return sum;
 
-        // Make sure we're accessing the correct property and it's a number
-        const amount = parseFloat(stream.average_amount || 0);
-        if (isNaN(amount)) return sum;
+        // Extract the amount properly from the average_amount field
+        const amount = extractAmount(stream.average_amount);
+        if (isNaN(amount) || amount === 0) return sum;
+
+        // Make sure amount is positive for expenses
+        const positiveAmount = Math.abs(amount);
 
         // Convert to monthly amount based on frequency
-        let monthlyAmount = amount;
+        let monthlyAmount = positiveAmount;
         const frequency = (stream.frequency || '').toUpperCase();
 
         if (frequency === 'WEEKLY') {
@@ -94,12 +102,15 @@ export default function RecurringTransactionsScreen() {
     const monthlyInflow = safeInflow.reduce((sum, stream) => {
         if (!stream) return sum;
 
-        // Make sure we're accessing the correct property and it's a number
-        const amount = parseFloat(stream.average_amount || 0);
-        if (isNaN(amount)) return sum;
+        // Extract the amount properly from the average_amount field
+        const amount = extractAmount(stream.average_amount);
+        if (isNaN(amount) || amount === 0) return sum;
+
+        // Make sure amount is positive for income
+        const positiveAmount = Math.abs(amount);
 
         // Convert to monthly amount based on frequency
-        let monthlyAmount = amount;
+        let monthlyAmount = positiveAmount;
         const frequency = (stream.frequency || '').toUpperCase();
 
         if (frequency === 'WEEKLY') {
@@ -118,47 +129,49 @@ export default function RecurringTransactionsScreen() {
     // Render content based on active tab
     const renderTabContent = () => {
         switch(activeTab) {
-            case 'upcoming':
+            case 'expenses':
                 return (
                     <View className="mt-4">
-                        {safeUpcoming.length === 0 ? (
+                        {safeOutflow.length === 0 ? (
                             <Card className="mb-4">
                                 <Card.Content className="items-center py-6">
                                     <Ionicons
-                                        name="calendar-outline"
+                                        name="arrow-up-circle-outline"
                                         size={48}
                                         color={isDarkMode ? '#6b7280' : '#9ca3af'}
                                     />
                                     <Text className="text-center mt-4 text-gray-500">
-                                        No upcoming recurring transactions detected.
+                                        No recurring expenses detected.
                                     </Text>
                                     <Text className="text-center mt-2 text-gray-500">
-                                        This data is provided by Plaid based on your transaction history.
+                                        Plaid may need more transaction history to identify patterns.
                                     </Text>
                                 </Card.Content>
                             </Card>
                         ) : (
-                            safeUpcoming.map((payment, index) => (
+                            safeOutflow.map((stream, index) => (
                                 <Card key={index} className="mb-3">
                                     <Card.Content>
                                         <View className="flex-row justify-between items-center">
                                             <View className="flex-row items-center flex-1">
                                                 <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-3">
                                                     <Ionicons
-                                                        name="calendar-outline"
+                                                        name="arrow-up-outline"
                                                         size={20}
                                                         color={isDarkMode ? '#f87171' : '#ef4444'}
                                                     />
                                                 </View>
                                                 <View className="flex-1">
-                                                    <Text className="font-medium">{payment.name}</Text>
+                                                    <Text className="font-medium">
+                                                        {stream.description || 'Unknown Expense'}
+                                                    </Text>
                                                     <Text className="text-gray-500 text-xs">
-                                                        {formatFrequency(payment.frequency)} • {payment.date}
+                                                        {formatFrequency(stream.frequency)}
                                                     </Text>
                                                 </View>
                                             </View>
-                                            <Text className="font-semibold text-lg">
-                                                {formatCurrency(payment.amount)}
+                                            <Text className="font-semibold text-lg text-red-600">
+                                                - {formatCurrency(extractAmount(stream.average_amount))}
                                             </Text>
                                         </View>
                                     </Card.Content>
@@ -210,59 +223,7 @@ export default function RecurringTransactionsScreen() {
                                                 </View>
                                             </View>
                                             <Text className="font-semibold text-lg text-green-600">
-                                                {formatCurrency(stream.average_amount)}
-                                            </Text>
-                                        </View>
-                                    </Card.Content>
-                                </Card>
-                            ))
-                        )}
-                    </View>
-                );
-
-            case 'expenses':
-                return (
-                    <View className="mt-4">
-                        {safeOutflow.length === 0 ? (
-                            <Card className="mb-4">
-                                <Card.Content className="items-center py-6">
-                                    <Ionicons
-                                        name="arrow-up-circle-outline"
-                                        size={48}
-                                        color={isDarkMode ? '#6b7280' : '#9ca3af'}
-                                    />
-                                    <Text className="text-center mt-4 text-gray-500">
-                                        No recurring expenses detected.
-                                    </Text>
-                                    <Text className="text-center mt-2 text-gray-500">
-                                        Plaid may need more transaction history to identify patterns.
-                                    </Text>
-                                </Card.Content>
-                            </Card>
-                        ) : (
-                            safeOutflow.map((stream, index) => (
-                                <Card key={index} className="mb-3">
-                                    <Card.Content>
-                                        <View className="flex-row justify-between items-center">
-                                            <View className="flex-row items-center flex-1">
-                                                <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-3">
-                                                    <Ionicons
-                                                        name="arrow-up-outline"
-                                                        size={20}
-                                                        color={isDarkMode ? '#f87171' : '#ef4444'}
-                                                    />
-                                                </View>
-                                                <View className="flex-1">
-                                                    <Text className="font-medium">
-                                                        {stream.description || 'Unknown Expense'}
-                                                    </Text>
-                                                    <Text className="text-gray-500 text-xs">
-                                                        {formatFrequency(stream.frequency)}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <Text className="font-semibold text-lg text-red-600">
-                                                {formatCurrency(stream.average_amount)}
+                                                + {formatCurrency(extractAmount(stream.average_amount))}
                                             </Text>
                                         </View>
                                     </Card.Content>
@@ -285,23 +246,23 @@ export default function RecurringTransactionsScreen() {
                 <View className="flex-row justify-between mt-2">
                     <View>
                         <Text className="text-blue-100">Monthly Income</Text>
-                        <Text className="text-2xl font-bold text-white">{formatCurrency(monthlyInflow)}</Text>
+                        <Text className="text-2xl font-bold text-white">${monthlyInflow.toFixed(2)}</Text>
                     </View>
                     <View>
                         <Text className="text-blue-100">Monthly Expenses</Text>
-                        <Text className="text-2xl font-bold text-white">{formatCurrency(monthlyOutflow)}</Text>
+                        <Text className="text-2xl font-bold text-white">${monthlyOutflow.toFixed(2)}</Text>
                     </View>
                 </View>
             </View>
 
-            {/* Tabs */}
+            {/* Tabs - updated order to show expenses first */}
             <View className="flex-row justify-around bg-white dark:bg-gray-800 py-2 border-b border-gray-200 dark:border-gray-700">
                 <TouchableOpacity
-                    className={`px-4 py-2 ${activeTab === 'upcoming' ? 'border-b-2 border-blue-600' : ''}`}
-                    onPress={() => setActiveTab('upcoming')}
+                    className={`px-4 py-2 ${activeTab === 'expenses' ? 'border-b-2 border-red-600' : ''}`}
+                    onPress={() => setActiveTab('expenses')}
                 >
-                    <Text className={`${activeTab === 'upcoming' ? 'text-blue-600 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
-                        Upcoming
+                    <Text className={`${activeTab === 'expenses' ? 'text-red-600 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
+                        Expenses
                     </Text>
                 </TouchableOpacity>
 
@@ -311,15 +272,6 @@ export default function RecurringTransactionsScreen() {
                 >
                     <Text className={`${activeTab === 'income' ? 'text-green-600 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
                         Income
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    className={`px-4 py-2 ${activeTab === 'expenses' ? 'border-b-2 border-red-600' : ''}`}
-                    onPress={() => setActiveTab('expenses')}
-                >
-                    <Text className={`${activeTab === 'expenses' ? 'text-red-600 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
-                        Expenses
                     </Text>
                 </TouchableOpacity>
             </View>

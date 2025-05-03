@@ -1,3 +1,4 @@
+// src/app/(tabs)/transactions.jsx - Updated with correct Plaid sign convention
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, RefreshControl, ScrollView, TouchableOpacity } from 'react-native';
 import { useDB } from '@/store/DBContext';
@@ -66,11 +67,13 @@ export default function TransactionsPage() {
             );
         }
 
-        // Then, filter by transaction type
+        // Then, filter by transaction type - UPDATED FOR PLAID CONVENTION
         if (filter === 'income') {
-            filtered = filtered.filter(tx => tx.amount > 0);
-        } else if (filter === 'expense') {
+            // Income is negative in Plaid's convention
             filtered = filtered.filter(tx => tx.amount < 0);
+        } else if (filter === 'expense') {
+            // Expenses are positive in Plaid's convention
+            filtered = filtered.filter(tx => tx.amount > 0);
         }
 
         return filtered;
@@ -82,7 +85,7 @@ export default function TransactionsPage() {
         return account ? account.name : 'Unknown Account';
     };
 
-    // Format currency
+    // Format currency - UPDATED FOR PLAID CONVENTION
     const formatCurrency = (amount) => {
         if (typeof amount !== 'number') return '$0.00';
         return `${Math.abs(amount).toFixed(2)}`;
@@ -230,23 +233,25 @@ export default function TransactionsPage() {
                                     description={`${getAccountName(transaction.account_id)} • ${getCategory(transaction)}`}
                                     left={props =>
                                         <View className="justify-center ml-2">
+                                            {/* UPDATED: Expense is positive in Plaid, Income is negative */}
                                             <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                                                transaction.amount > 0 ? 'bg-green-100' : 'bg-red-100'
+                                                transaction.amount < 0 ? 'bg-green-100' : 'bg-red-100'
                                             }`}>
                                                 <Ionicons
-                                                    name={transaction.amount > 0 ? 'arrow-down' : 'arrow-up'}
+                                                    name={transaction.amount < 0 ? 'arrow-down' : 'arrow-up'}
                                                     size={20}
-                                                    color={transaction.amount > 0 ? '#10b981' : '#ef4444'}
+                                                    color={transaction.amount < 0 ? '#10b981' : '#ef4444'}
                                                 />
                                             </View>
                                         </View>
                                     }
                                     right={props => (
                                         <View className="justify-center">
+                                            {/* UPDATED: Expense is positive in Plaid, Income is negative */}
                                             <Text className={`font-medium ${
-                                                transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                                                transaction.amount < 0 ? 'text-green-600' : 'text-red-600'
                                             }`}>
-                                                {transaction.amount > 0 ? '+' : '-'} {formatCurrency(transaction.amount)}
+                                                {transaction.amount < 0 ? '+' : '-'} {formatCurrency(transaction.amount)}
                                             </Text>
                                         </View>
                                     )}
