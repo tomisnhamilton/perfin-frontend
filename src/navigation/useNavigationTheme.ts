@@ -1,3 +1,4 @@
+// src/navigation/useNavigationTheme.js
 import { useColorScheme } from 'react-native';
 
 export function useNavigationTheme() {

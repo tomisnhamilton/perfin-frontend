@@ -87,9 +87,9 @@ export default function AccountsPage() {
     // If still loading, show a loading indicator
     if (loading && !refreshing) {
         return (
-            <View className="flex-1 justify-center items-center">
+            <View className="flex-1 justify-center items-center bg-white dark:bg-gray-900">
                 <ActivityIndicator size="large" color="#4f46e5" />
-                <Text className="mt-4 text-gray-600">Loading your accounts...</Text>
+                <Text className="mt-4 text-gray-600 dark:text-gray-400">Loading your accounts...</Text>
             </View>
         );
     }
@@ -98,14 +98,14 @@ export default function AccountsPage() {
     if (accounts.length === 0 && !loading) {
         return (
             <ScrollView
-                className="p-4"
+                className="flex-1 p-4 bg-white dark:bg-gray-900"
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
             >
-                <Card className="p-6 mb-4 items-center">
-                    <Title className="text-xl text-center mb-4">No Accounts Found</Title>
-                    <Text className="text-center mb-6">
+                <Card className="p-6 mb-4 items-center bg-white dark:bg-gray-800">
+                    <Title className="text-xl text-center mb-4 text-gray-800 dark:text-white">No Accounts Found</Title>
+                    <Text className="text-center mb-6 text-gray-600 dark:text-gray-400">
                         You don't have any financial accounts connected yet.
                     </Text>
                     <Card
@@ -123,39 +123,41 @@ export default function AccountsPage() {
 
     return (
         <ScrollView
-            className="p-4"
+            className="flex-1 p-4 bg-white dark:bg-gray-900"
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
         >
             {/* Summary card - UPDATED WITH BETTER BALANCE INFO */}
-            <Card className="mb-4">
+            <Card className="mb-4 bg-white dark:bg-gray-800">
                 <Card.Content>
-                    <Title className="text-xl font-bold">Financial Summary</Title>
+                    <Title className="text-xl font-bold text-gray-800 dark:text-white">Financial Summary</Title>
                     <View className="mt-2">
                         <View className="flex-row justify-between mb-1">
-                            <Text className="text-gray-600">Total Assets:</Text>
-                            <Text className="text-green-600 font-medium">{formatCurrency(totalAssets)}</Text>
+                            <Text className="text-gray-600 dark:text-gray-300">Total Assets:</Text>
+                            <Text className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(totalAssets)}</Text>
                         </View>
                         <View className="flex-row justify-between mb-1">
-                            <Text className="text-gray-600">Total Debts:</Text>
-                            <Text className="text-red-600 font-medium">{formatCurrency(Math.abs(totalDebts), true)}</Text>
+                            <Text className="text-gray-600 dark:text-gray-300">Total Debts:</Text>
+                            <Text className="text-red-600 dark:text-red-400 font-medium">{formatCurrency(Math.abs(totalDebts), true)}</Text>
                         </View>
                         <View className="flex-row justify-between pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
-                            <Text className="text-gray-800 dark:text-gray-200 font-semibold">Net Worth:</Text>
-                            <Text className={`font-semibold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <Text className="text-gray-800 dark:text-white font-semibold">Net Worth:</Text>
+                            <Text className={`font-semibold ${totalBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {totalBalance >= 0 ? formatCurrency(totalBalance) : formatCurrency(Math.abs(totalBalance), true)}
                             </Text>
                         </View>
                     </View>
-                    <Text className="text-gray-500 mt-3 text-sm">{accounts.length} accounts connected</Text>
+                    <Text className="text-gray-500 dark:text-gray-400 mt-3 text-sm">{accounts.length} accounts connected</Text>
                 </Card.Content>
             </Card>
 
             {/* Accounts by type */}
             {Object.entries(accountsByType).map(([type, typeAccounts]) => (
                 <View key={type} className="mb-4">
-                    <Text className="text-lg font-semibold mb-2 px-2">{type} Accounts</Text>
+                    <Text className="text-lg font-semibold mb-2 px-2 text-gray-800 dark:text-gray-100">
+                        {type} Accounts
+                    </Text>
                     {typeAccounts.map(account => (
                         <AccountCard key={account.account_id} account={account} />
                     ))}

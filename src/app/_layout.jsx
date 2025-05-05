@@ -1,13 +1,14 @@
-// src/app/_layout.jsx - Fixed version
+// src/app/_layout.jsx
 import React, { useEffect, useState } from "react";
 import { Stack, Redirect, useSegments, useRouter } from "expo-router";
 import { useColorScheme } from "react-native";
 import "@/assets/css/global.css";
-import { useNavigationTheme } from "@/navigation/useNavigationTheme";
 import { PlaidProvider } from "@/store/PlaidContext";
 import { AuthProvider, useAuth } from "@/store/AuthContext";
 import { View, Text, ActivityIndicator } from "react-native";
 import { DBProvider } from "../store/DBContext";
+// Import PaperProvider but don't create a custom theme
+import { Provider as PaperProvider } from 'react-native-paper';
 
 // Helper to check if a segment is protected
 const isProtectedSegment = (segment) => {
@@ -57,7 +58,6 @@ function AuthenticationGuard({ children }) {
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
-    const navigationTheme = useNavigationTheme();
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
@@ -79,31 +79,34 @@ export default function RootLayout() {
         <AuthProvider>
             <DBProvider>
                 <PlaidProvider>
-                    <AuthenticationGuard>
-                        <Stack
-                            screenOptions={{
-                                headerStyle: {
-                                    backgroundColor: navigationTheme.headerBackground,
-                                },
-                                headerTintColor: navigationTheme.headerTint,
-                                headerShadowVisible: false,
-                                headerBackTitle: "Back",
-                            }}
-                        >
-                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                            <Stack.Screen name="connect-bank" options={{
-                                title: "Connect Bank Account",
-                                headerShown: true,
-                            }} />
-                            <Stack.Screen name="plaid-link" options={{
-                                title: "Connect Your Bank",
-                                headerShown: true,
-                            }} />
-                            <Stack.Screen name="login" options={{ headerShown: false }} />
-                            <Stack.Screen name="register" options={{ headerShown: false }} />
-                            <Stack.Screen name="index" options={{ headerShown: false }} />
-                        </Stack>
-                    </AuthenticationGuard>
+                    {/* Use PaperProvider without a theme prop */}
+                    <PaperProvider>
+                        <AuthenticationGuard>
+                            <Stack
+                                screenOptions={{
+                                    headerStyle: {
+                                        backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#ffffff',
+                                    },
+                                    headerTintColor: colorScheme === 'dark' ? '#f9fafb' : '#1f2937',
+                                    headerShadowVisible: false,
+                                    headerBackTitle: "Back",
+                                }}
+                            >
+                                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                                <Stack.Screen name="connect-bank" options={{
+                                    title: "Connect Bank Account",
+                                    headerShown: true,
+                                }} />
+                                <Stack.Screen name="plaid-link" options={{
+                                    title: "Connect Your Bank",
+                                    headerShown: true,
+                                }} />
+                                <Stack.Screen name="login" options={{ headerShown: false }} />
+                                <Stack.Screen name="register" options={{ headerShown: false }} />
+                                <Stack.Screen name="index" options={{ headerShown: false }} />
+                            </Stack>
+                        </AuthenticationGuard>
+                    </PaperProvider>
                 </PlaidProvider>
             </DBProvider>
         </AuthProvider>

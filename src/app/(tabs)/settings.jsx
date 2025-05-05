@@ -92,7 +92,7 @@ export default function SettingsScreen() {
     return (
         <ScreenLayout>
             <ScrollView showsVerticalScrollIndicator={false}>
-                <View className="items-center mb-6">
+                <View className="items-center mb-6 mt-2">
                     <View
                         className="h-20 w-20 rounded-full bg-blue-100 dark:bg-blue-800 items-center justify-center mb-2">
                         <Ionicons
@@ -218,7 +218,7 @@ export default function SettingsScreen() {
                             />
                         </View>
                         <View className="flex-1">
-                            <Text className="font-medium text-red-600 dark:text-red-400">
+                            <Text className="font-medium text-red-600 dark:text-red-200">
                                 Delete Account
                             </Text>
                             <Text className="text-red-500 dark:text-red-300 text-sm">
@@ -231,6 +231,7 @@ export default function SettingsScreen() {
                             color={isDarkMode ? "#f87171" : "#ef4444"}
                         />
                     </TouchableOpacity>
+
                 </View>
 
                 {/* App Info */}

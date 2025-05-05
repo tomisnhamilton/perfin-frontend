@@ -1,28 +1,26 @@
-// src/app/(tabs)/_layout.jsx
+// src/app/(tabs)/_layout.jsx - Simplified tabs layout without theme references
 import React from "react";
 import { Tabs } from "expo-router";
 import { useColorScheme } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigationTheme } from "@/navigation/useNavigationTheme";
 
 export default function TabLayout() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
-    const navigationTheme = useNavigationTheme();
 
     return (
         <Tabs
             screenOptions={{
-                tabBarActiveTintColor: navigationTheme.tabActiveColor,
-                tabBarInactiveTintColor: navigationTheme.tabInactiveColor,
+                tabBarActiveTintColor: isDark ? '#60a5fa' : '#3b82f6',
+                tabBarInactiveTintColor: isDark ? '#6b7280' : '#9ca3af',
                 tabBarStyle: {
-                    backgroundColor: navigationTheme.tabBackground,
-                    borderTopColor: isDark ? "#374151" : "#e5e7eb", // gray-700 or gray-200
+                    backgroundColor: isDark ? "#111827" : "#ffffff",
+                    borderTopColor: isDark ? "#374151" : "#e5e7eb",
                 },
                 headerStyle: {
-                    backgroundColor: navigationTheme.headerBackground,
+                    backgroundColor: isDark ? '#1f2937' : '#ffffff',
                 },
-                headerTintColor: navigationTheme.headerTint,
+                headerTintColor: isDark ? '#f9fafb' : '#1f2937',
                 headerShadowVisible: false,
             }}
         >

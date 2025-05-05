@@ -133,44 +133,44 @@ export default function RecurringTransactionsScreen() {
                 return (
                     <View className="mt-4">
                         {safeOutflow.length === 0 ? (
-                            <Card className="mb-4">
+                            <Card className="mb-4 bg-white dark:bg-gray-800">
                                 <Card.Content className="items-center py-6">
                                     <Ionicons
                                         name="arrow-up-circle-outline"
                                         size={48}
                                         color={isDarkMode ? '#6b7280' : '#9ca3af'}
                                     />
-                                    <Text className="text-center mt-4 text-gray-500">
+                                    <Text className="text-center mt-4 text-gray-500 dark:text-gray-400">
                                         No recurring expenses detected.
                                     </Text>
-                                    <Text className="text-center mt-2 text-gray-500">
+                                    <Text className="text-center mt-2 text-gray-500 dark:text-gray-400">
                                         Plaid may need more transaction history to identify patterns.
                                     </Text>
                                 </Card.Content>
                             </Card>
                         ) : (
                             safeOutflow.map((stream, index) => (
-                                <Card key={index} className="mb-3">
+                                <Card key={index} className="mb-3 bg-white dark:bg-gray-800">
                                     <Card.Content>
                                         <View className="flex-row justify-between items-center">
                                             <View className="flex-row items-center flex-1">
-                                                <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-3">
+                                                <View className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 items-center justify-center mr-3">
                                                     <Ionicons
                                                         name="arrow-up-outline"
                                                         size={20}
-                                                        color={isDarkMode ? '#f87171' : '#ef4444'}
+                                                        color={isDarkMode ? "#f87171" : "#ef4444"}
                                                     />
                                                 </View>
                                                 <View className="flex-1">
-                                                    <Text className="font-medium">
+                                                    <Text className="font-medium text-gray-800 dark:text-white">
                                                         {stream.description || 'Unknown Expense'}
                                                     </Text>
-                                                    <Text className="text-gray-500 text-xs">
+                                                    <Text className="text-gray-500 dark:text-gray-400 text-xs">
                                                         {formatFrequency(stream.frequency)}
                                                     </Text>
                                                 </View>
                                             </View>
-                                            <Text className="font-semibold text-lg text-red-600">
+                                            <Text className="font-semibold text-lg text-red-600 dark:text-red-400">
                                                 - {formatCurrency(extractAmount(stream.average_amount))}
                                             </Text>
                                         </View>
@@ -185,45 +185,45 @@ export default function RecurringTransactionsScreen() {
                 return (
                     <View className="mt-4">
                         {safeInflow.length === 0 ? (
-                            <Card className="mb-4">
+                            <Card className="mb-4 bg-white dark:bg-gray-800">
                                 <Card.Content className="items-center py-6">
                                     <Ionicons
-                                        name="arrow-down-circle-outline"
+                                        name="arrow-up-circle-outline"
                                         size={48}
                                         color={isDarkMode ? '#6b7280' : '#9ca3af'}
                                     />
-                                    <Text className="text-center mt-4 text-gray-500">
-                                        No recurring income detected.
+                                    <Text className="text-center mt-4 text-gray-500 dark:text-gray-400">
+                                        No recurring expenses detected.
                                     </Text>
-                                    <Text className="text-center mt-2 text-gray-500">
+                                    <Text className="text-center mt-2 text-gray-500 dark:text-gray-400">
                                         Plaid may need more transaction history to identify patterns.
                                     </Text>
                                 </Card.Content>
                             </Card>
                         ) : (
                             safeInflow.map((stream, index) => (
-                                <Card key={index} className="mb-3">
+                                <Card key={index} className="mb-3 bg-white dark:bg-gray-800">
                                     <Card.Content>
                                         <View className="flex-row justify-between items-center">
                                             <View className="flex-row items-center flex-1">
-                                                <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
+                                                <View className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 items-center justify-center mr-3">
                                                     <Ionicons
                                                         name="arrow-down-outline"
                                                         size={20}
-                                                        color={isDarkMode ? '#34d399' : '#10b981'}
+                                                        color={isDarkMode ? "#71f871" : "#44ef44"}
                                                     />
                                                 </View>
                                                 <View className="flex-1">
-                                                    <Text className="font-medium">
-                                                        {stream.description || 'Unknown Income'}
+                                                    <Text className="font-medium text-gray-800 dark:text-white">
+                                                        {stream.description || 'Unknown Expense'}
                                                     </Text>
-                                                    <Text className="text-gray-500 text-xs">
+                                                    <Text className="text-gray-500 dark:text-gray-400 text-xs">
                                                         {formatFrequency(stream.frequency)}
                                                     </Text>
                                                 </View>
                                             </View>
-                                            <Text className="font-semibold text-lg text-green-600">
-                                                + {formatCurrency(extractAmount(stream.average_amount))}
+                                            <Text className="font-semibold text-lg text-green-600 dark:text-green-400">
+                                                - {formatCurrency(extractAmount(stream.average_amount))}
                                             </Text>
                                         </View>
                                     </Card.Content>
@@ -255,13 +255,14 @@ export default function RecurringTransactionsScreen() {
                 </View>
             </View>
 
+
             {/* Tabs - updated order to show expenses first */}
             <View className="flex-row justify-around bg-white dark:bg-gray-800 py-2 border-b border-gray-200 dark:border-gray-700">
                 <TouchableOpacity
                     className={`px-4 py-2 ${activeTab === 'expenses' ? 'border-b-2 border-red-600' : ''}`}
                     onPress={() => setActiveTab('expenses')}
                 >
-                    <Text className={`${activeTab === 'expenses' ? 'text-red-600 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
+                    <Text className={`${activeTab === 'expenses' ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
                         Expenses
                     </Text>
                 </TouchableOpacity>
@@ -270,7 +271,7 @@ export default function RecurringTransactionsScreen() {
                     className={`px-4 py-2 ${activeTab === 'income' ? 'border-b-2 border-green-600' : ''}`}
                     onPress={() => setActiveTab('income')}
                 >
-                    <Text className={`${activeTab === 'income' ? 'text-green-600 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
+                    <Text className={`${activeTab === 'income' ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
                         Income
                     </Text>
                 </TouchableOpacity>

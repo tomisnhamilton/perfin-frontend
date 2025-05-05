@@ -1,6 +1,4 @@
 // src/components/ui/TransactionList/TransactionList.native.jsx
-// Updated with correct sign convention for Plaid transactions
-
 import React from 'react';
 import { FlatList, View, Text } from 'react-native';
 import { List } from 'react-native-paper';
@@ -30,7 +28,7 @@ export default function TransactionList({ transactions }) {
         return {
             icon: isExpense ? 'arrow-up' : 'arrow-down',
             color: isExpense ? '#ef4444' : '#10b981', // red for expense, green for income
-            bgColor: isExpense ? 'bg-red-100' : 'bg-green-100',
+            bgColor: isExpense ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900',
         };
     };
 
@@ -47,8 +45,16 @@ export default function TransactionList({ transactions }) {
 
                     return (
                         <List.Item
-                            title={item.name || 'Unknown Transaction'}
-                            description={new Date(item.date).toLocaleDateString()}
+                            title={props => (
+                                <Text className="text-gray-800 dark:text-white">
+                                    {item.name || 'Unknown Transaction'}
+                                </Text>
+                            )}
+                            description={props => (
+                                <Text className="text-gray-500 dark:text-gray-400">
+                                    {new Date(item.date).toLocaleDateString()}
+                                </Text>
+                            )}
                             left={() => (
                                 <View className="justify-center ml-2">
                                     <View className={`w-10 h-10 rounded-full items-center justify-center ${visuals.bgColor}`}>
@@ -62,17 +68,18 @@ export default function TransactionList({ transactions }) {
                             )}
                             right={() => (
                                 <View className="justify-center">
-                                    <Text className={`font-medium ${item.amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    <Text className={`font-medium ${item.amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                         {formatAmount(item.amount)}
                                     </Text>
                                 </View>
                             )}
+                            style={{ backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }}
                         />
                     );
                 }}
                 ListEmptyComponent={
-                    <View className="items-center py-8">
-                        <Text className="text-gray-500">No transactions found</Text>
+                    <View className="items-center py-8 bg-white dark:bg-gray-800 rounded-lg">
+                        <Text className="text-gray-500 dark:text-gray-400">No transactions found</Text>
                     </View>
                 }
             />

@@ -77,9 +77,9 @@ export default function AccountCard({ account }) {
     // Handle undefined account gracefully
     if (!account) {
         return (
-            <Card style={{ marginVertical: 8, marginHorizontal: 16 }}>
+            <Card className="mb-2 bg-white dark:bg-gray-800">
                 <Card.Content>
-                    <Text>Account data unavailable</Text>
+                    <Text className="text-gray-800 dark:text-gray-200">Account data unavailable</Text>
                 </Card.Content>
             </Card>
         );
@@ -93,7 +93,7 @@ export default function AccountCard({ account }) {
     const balanceColor = isDebt ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-white';
 
     return (
-        <Card className="mb-2 overflow-hidden">
+        <Card className="mb-2 overflow-hidden bg-white dark:bg-gray-800">
             <Card.Content>
                 <View className="flex-row items-center">
                     <View className={`w-10 h-10 rounded-full items-center justify-center mr-3`}

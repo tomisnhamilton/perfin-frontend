@@ -153,7 +153,7 @@ export default function TransactionsPage() {
         .sort((a, b) => new Date(b) - new Date(a));
 
     return (
-        <View className="flex-1">
+        <View className="flex-1 bg-white dark:bg-gray-900">
             {/* Search bar */}
             <Searchbar
                 placeholder="Search transactions..."
@@ -166,30 +166,30 @@ export default function TransactionsPage() {
             <View className="flex-row justify-around my-2 px-4">
                 <TouchableOpacity
                     className={`py-2 px-4 rounded-full ${filter === 'all' ?
-                        'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                        'bg-blue-500 dark:bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
                     onPress={() => setFilter('all')}
                 >
-                    <Text className={filter === 'all' ? 'text-white' : 'text-gray-800 dark:text-white'}>
+                    <Text className={filter === 'all' ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>
                         All
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     className={`py-2 px-4 rounded-full ${filter === 'income' ?
-                        'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                        'bg-green-500 dark:bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`}
                     onPress={() => setFilter('income')}
                 >
-                    <Text className={filter === 'income' ? 'text-white' : 'text-gray-800 dark:text-white'}>
+                    <Text className={filter === 'income' ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>
                         Income
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     className={`py-2 px-4 rounded-full ${filter === 'expense' ?
-                        'bg-red-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                        'bg-red-500 dark:bg-red-600' : 'bg-gray-200 dark:bg-gray-700'}`}
                     onPress={() => setFilter('expense')}
                 >
-                    <Text className={filter === 'expense' ? 'text-white' : 'text-gray-800 dark:text-white'}>
+                    <Text className={filter === 'expense' ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>
                         Expenses
                     </Text>
                 </TouchableOpacity>
@@ -203,7 +203,7 @@ export default function TransactionsPage() {
                 className="pb-4"
             >
                 {displayedTransactions.length === 0 ? (
-                    <View className="items-center justify-center py-12">
+                    <View className="items-center justify-center py-12 bg-white dark:bg-gray-900">
                         <Ionicons
                             name="receipt-outline"
                             size={48}
@@ -229,13 +229,21 @@ export default function TransactionsPage() {
                             {filteredGroupedTransactions[date].map(transaction => (
                                 <List.Item
                                     key={transaction.transaction_id}
-                                    title={transaction.name || 'Unnamed Transaction'}
-                                    description={`${getAccountName(transaction.account_id)} • ${getCategory(transaction)}`}
-                                    left={props =>
+                                    title={props => (
+                                        <Text className="text-gray-800 dark:text-white">
+                                            {transaction.name || 'Unnamed Transaction'}
+                                        </Text>
+                                    )}
+                                    description={props => (
+                                        <Text className="text-gray-600 dark:text-gray-400">
+                                            {getAccountName(transaction.account_id)} • {getCategory(transaction)}
+                                        </Text>
+                                    )}
+                                    left={() => (
                                         <View className="justify-center ml-2">
                                             {/* UPDATED: Expense is positive in Plaid, Income is negative */}
                                             <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                                                transaction.amount < 0 ? 'bg-green-100' : 'bg-red-100'
+                                                transaction.amount < 0 ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'
                                             }`}>
                                                 <Ionicons
                                                     name={transaction.amount < 0 ? 'arrow-down' : 'arrow-up'}
@@ -244,18 +252,20 @@ export default function TransactionsPage() {
                                                 />
                                             </View>
                                         </View>
-                                    }
-                                    right={props => (
+                                    )}
+                                    right={() => (
                                         <View className="justify-center">
                                             {/* UPDATED: Expense is positive in Plaid, Income is negative */}
                                             <Text className={`font-medium ${
-                                                transaction.amount < 0 ? 'text-green-600' : 'text-red-600'
+                                                transaction.amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                             }`}>
                                                 {transaction.amount < 0 ? '+' : '-'} {formatCurrency(transaction.amount)}
                                             </Text>
                                         </View>
                                     )}
+                                    style={{ backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }}
                                 />
+
                             ))}
                             <Divider />
                         </View>
