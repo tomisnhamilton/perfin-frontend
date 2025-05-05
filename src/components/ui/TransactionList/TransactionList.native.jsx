@@ -1,6 +1,6 @@
 // src/components/ui/TransactionList/TransactionList.native.jsx
 import React from 'react';
-import { FlatList, View, Text } from 'react-native';
+import { FlatList, View, Text, Image } from 'react-native';
 import { List } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
@@ -42,6 +42,7 @@ export default function TransactionList({ transactions }) {
                 keyExtractor={item => item.transaction_id || String(Math.random())}
                 renderItem={({ item }) => {
                     const visuals = getTransactionVisuals(item.amount);
+                    const hasLogo = item.logo_url && item.logo_url.trim() !== '';
 
                     return (
                         <List.Item
@@ -57,13 +58,23 @@ export default function TransactionList({ transactions }) {
                             )}
                             left={() => (
                                 <View className="justify-center ml-2">
-                                    <View className={`w-10 h-10 rounded-full items-center justify-center ${visuals.bgColor}`}>
-                                        <Ionicons
-                                            name={visuals.icon}
-                                            size={20}
-                                            color={visuals.color}
-                                        />
-                                    </View>
+                                    {hasLogo ? (
+                                        <View className="w-10 h-10 rounded-full overflow-hidden items-center justify-center bg-white">
+                                            <Image
+                                                source={{ uri: item.logo_url }}
+                                                className="w-full h-full"
+                                                resizeMode="contain"
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View className={`w-10 h-10 rounded-full items-center justify-center ${visuals.bgColor}`}>
+                                            <Ionicons
+                                                name={visuals.icon}
+                                                size={20}
+                                                color={visuals.color}
+                                            />
+                                        </View>
+                                    )}
                                 </View>
                             )}
                             right={() => (

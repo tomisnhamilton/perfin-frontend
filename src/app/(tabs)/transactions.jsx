@@ -1,6 +1,6 @@
-// src/app/(tabs)/transactions.jsx - Updated with correct Plaid sign convention
+// src/app/(tabs)/transactions.jsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, RefreshControl, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, RefreshControl, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useDB } from '@/store/DBContext';
 import { Card, Title, List, Searchbar, Divider } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -226,47 +226,62 @@ export default function TransactionsPage() {
                             </View>
 
                             {/* Transactions for this date */}
-                            {filteredGroupedTransactions[date].map(transaction => (
-                                <List.Item
-                                    key={transaction.transaction_id}
-                                    title={props => (
-                                        <Text className="text-gray-800 dark:text-white">
-                                            {transaction.name || 'Unnamed Transaction'}
-                                        </Text>
-                                    )}
-                                    description={props => (
-                                        <Text className="text-gray-600 dark:text-gray-400">
-                                            {getAccountName(transaction.account_id)} • {getCategory(transaction)}
-                                        </Text>
-                                    )}
-                                    left={() => (
-                                        <View className="justify-center ml-2">
-                                            {/* UPDATED: Expense is positive in Plaid, Income is negative */}
-                                            <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                                                transaction.amount < 0 ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'
-                                            }`}>
-                                                <Ionicons
-                                                    name={transaction.amount < 0 ? 'arrow-down' : 'arrow-up'}
-                                                    size={20}
-                                                    color={transaction.amount < 0 ? '#10b981' : '#ef4444'}
-                                                />
-                                            </View>
-                                        </View>
-                                    )}
-                                    right={() => (
-                                        <View className="justify-center">
-                                            {/* UPDATED: Expense is positive in Plaid, Income is negative */}
-                                            <Text className={`font-medium ${
-                                                transaction.amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                            }`}>
-                                                {transaction.amount < 0 ? '+' : '-'} {formatCurrency(transaction.amount)}
-                                            </Text>
-                                        </View>
-                                    )}
-                                    style={{ backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }}
-                                />
+                            {filteredGroupedTransactions[date].map(transaction => {
+                                // Check if transaction has a logo
+                                const hasLogo = transaction.logo_url && transaction.logo_url.trim() !== '';
 
-                            ))}
+                                return (
+                                    <List.Item
+                                        key={transaction.transaction_id}
+                                        title={props => (
+                                            <Text className="text-gray-800 dark:text-white">
+                                                {transaction.name || 'Unnamed Transaction'}
+                                            </Text>
+                                        )}
+                                        description={props => (
+                                            <Text className="text-gray-600 dark:text-gray-400">
+                                                {getAccountName(transaction.account_id)} • {getCategory(transaction)}
+                                            </Text>
+                                        )}
+                                        left={() => (
+                                            <View className="justify-center ml-2">
+                                                {hasLogo ? (
+                                                    // Display merchant logo if available
+                                                    <View className="w-10 h-10 rounded-full overflow-hidden items-center justify-center bg-white">
+                                                        <Image
+                                                            source={{ uri: transaction.logo_url }}
+                                                            className="w-full h-full"
+                                                            resizeMode="contain"
+                                                        />
+                                                    </View>
+                                                ) : (
+                                                    // Use arrow icons as fallback
+                                                    <View className={`w-10 h-10 rounded-full items-center justify-center ${
+                                                        transaction.amount < 0 ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'
+                                                    }`}>
+                                                        <Ionicons
+                                                            name={transaction.amount < 0 ? 'arrow-down' : 'arrow-up'}
+                                                            size={20}
+                                                            color={transaction.amount < 0 ? '#10b981' : '#ef4444'}
+                                                        />
+                                                    </View>
+                                                )}
+                                            </View>
+                                        )}
+                                        right={() => (
+                                            <View className="justify-center">
+                                                {/* UPDATED: Expense is positive in Plaid, Income is negative */}
+                                                <Text className={`font-medium ${
+                                                    transaction.amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                                }`}>
+                                                    {transaction.amount < 0 ? '+' : '-'} {formatCurrency(transaction.amount)}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        style={{ backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }}
+                                    />
+                                );
+                            })}
                             <Divider />
                         </View>
                     ))

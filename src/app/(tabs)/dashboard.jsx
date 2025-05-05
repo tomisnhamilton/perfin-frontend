@@ -1,5 +1,6 @@
+// src/app/(tabs)/dashboard.jsx
 import React, { useState } from 'react';
-import { View, ScrollView, ActivityIndicator, RefreshControl, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, ActivityIndicator, RefreshControl, Text, TouchableOpacity, Image } from 'react-native';
 import { Card } from 'react-native-paper';
 import { useDB } from '@/store/DBContext';
 import { useRouter } from 'expo-router';
@@ -7,7 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 
 // Simple bar chart component for weekly spending - UPDATED to flip chart orientation
-// Replace the entire SimpleBarChart component with this implementation
 const SimpleBarChart = ({ data, height = 200 }) => {
     const colorScheme = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
@@ -138,6 +138,114 @@ const SimpleDonutChart = ({ data, height = 250 }) => {
                 </View>
             </View>
         </View>
+    );
+};
+
+// Recent Transactions Component with Logo Support
+const RecentTransactionsSection = ({ transactions, router }) => {
+    const colorScheme = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
+
+    // Format currency consistently
+    const formatCurrency = (amount) => {
+        if (amount === undefined || amount === null || isNaN(amount)) return '$0.00';
+        return `$${Math.abs(parseFloat(amount)).toFixed(2)}`;
+    };
+
+    // Format date nicely
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+
+        try {
+            const date = new Date(dateString.includes('T') ?
+                dateString : `${dateString}T00:00:00Z`);
+
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch (e) {
+            return dateString;
+        }
+    };
+
+    return (
+        <Card className="mb-4 rounded-xl overflow-hidden shadow-sm">
+            <TouchableOpacity
+                className="p-4"
+                onPress={() => router.push('/(tabs)/transactions')}
+            >
+                <View className="flex-row items-center justify-between mb-3">
+                    <View className="flex-row items-center">
+                        <View className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-800 items-center justify-center mr-3">
+                            <Ionicons name="list-outline" size={20} color={isDarkMode ? '#d8b4fe' : '#8b5cf6'} />
+                        </View>
+                        <Text className="font-bold text-lg text-gray-800 dark:text-gray-100">Recent Transactions</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                </View>
+
+                {/* Recent Transactions List */}
+                {transactions.length === 0 ? (
+                    <Text className="text-center py-4 text-gray-500">
+                        No recent transactions found
+                    </Text>
+                ) : (
+                    transactions.slice(0, 3).map((transaction, index) => {
+                        // Check if transaction has a logo
+                        const hasLogo = transaction.logo_url && transaction.logo_url.trim() !== '';
+
+                        return (
+                            <View key={index} className="flex-row justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800">
+                                <View className="flex-row items-center">
+                                    {/* Logo or Icon */}
+                                    {hasLogo ? (
+                                        <View className="w-8 h-8 rounded-full overflow-hidden bg-white mr-3">
+                                            <Image
+                                                source={{ uri: transaction.logo_url }}
+                                                className="w-full h-full"
+                                                resizeMode="contain"
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
+                                            transaction.amount < 0 ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'
+                                        }`}>
+                                            <Ionicons
+                                                name={transaction.amount < 0 ? 'arrow-down' : 'arrow-up'}
+                                                size={16}
+                                                color={transaction.amount < 0 ? '#10b981' : '#ef4444'}
+                                            />
+                                        </View>
+                                    )}
+
+                                    {/* Transaction Details */}
+                                    <View>
+                                        <Text className="font-medium text-gray-800 dark:text-gray-100">
+                                            {transaction.name || 'Unknown Transaction'}
+                                        </Text>
+                                        <Text className="text-xs text-gray-500">{formatDate(transaction.date)}</Text>
+                                    </View>
+                                </View>
+
+                                {/* Amount */}
+                                <Text className={`font-medium ${
+                                    transaction.amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                }`}>
+                                    {transaction.amount < 0 ? '+' : '-'} {formatCurrency(Math.abs(transaction.amount))}
+                                </Text>
+                            </View>
+                        );
+                    })
+                )}
+
+                {transactions.length > 3 && (
+                    <Text className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                        + {transactions.length - 3} more transactions
+                    </Text>
+                )}
+            </TouchableOpacity>
+        </Card>
     );
 };
 
@@ -321,23 +429,6 @@ export default function DashboardScreen() {
         return `$${Math.abs(parseFloat(amount)).toFixed(2)}`;
     };
 
-    // Format date nicely
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-
-        try {
-            const date = new Date(dateString.includes('T') ?
-                dateString : `${dateString}T00:00:00Z`);
-
-            return date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (e) {
-            return dateString;
-        }
-    };
-
     return (
         <ScrollView
             className="flex-1 bg-gray-50 dark:bg-gray-900"
@@ -440,6 +531,9 @@ export default function DashboardScreen() {
                     </TouchableOpacity>
                 </Card>
 
+                {/* Recent Transactions Card */}
+                <RecentTransactionsSection transactions={safeTransactions} router={router} />
+
                 {/* Upcoming Payments Card */}
                 <Card className="mb-4 rounded-xl overflow-hidden shadow-sm">
                     <TouchableOpacity
@@ -465,7 +559,7 @@ export default function DashboardScreen() {
                                 <View key={index} className="flex-row justify-between mb-2 py-2 border-b border-gray-100 dark:border-gray-800">
                                     <View>
                                         <Text className="font-medium text-gray-800 dark:text-gray-100">{payment.name}</Text>
-                                        <Text className="text-xs text-gray-500">{formatDate(payment.date)}</Text>
+                                        <Text className="text-xs text-gray-500">{payment.date ? new Date(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</Text>
                                     </View>
                                     {/* UPDATED: Format amount correctly based on Plaid convention */}
                                     <Text className="font-medium text-red-600 dark:text-red-400">
