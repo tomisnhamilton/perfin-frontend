@@ -310,33 +310,32 @@ export default function DashboardScreen() {
     const getAccountBalance = (account) => {
         if (!account || !account.balances) return 0;
 
-        // For credit accounts, we need to negate the balance since a positive
-        // balance on a credit account means you owe money (a liability)
+        // For credit accounts, negate the balance to represent debt as negative
         if (account.type === 'credit') {
             // Use available balance if present, otherwise use current balance
-            const balance = account.balances.available !== undefined
-                ? account.balances.available
-                : (account.balances.current !== undefined ? account.balances.current : 0);
+            const balance = account.balances.current !== undefined
+                ? account.balances.current
+                : (account.balances.available !== undefined ? account.balances.current : 0);
 
-            // Negate credit card balances so they're displayed correctly in the total
+            // Negate credit card balances for calculation purposes
             return -Math.abs(balance);
         }
-        // For loan accounts or other liabilities, also negate
+        // For loan accounts, also negate the balance
         else if (account.type === 'loan' || account.type === 'mortgage') {
             const balance = account.balances.current || 0;
             return -Math.abs(balance);
         }
-        // For regular accounts (checking, savings, etc.)
+        // For regular deposit accounts (checking, savings, etc.)
         else {
             // Use available balance if present, otherwise use current balance
-            return account.balances.available !== undefined
-                ? account.balances.available
-                : (account.balances.current !== undefined ? account.balances.current : 0);
+            return account.balances.current !== undefined
+                ? account.balances.current
+                : (account.balances.available !== undefined ? account.balances.current : 0);
         }
     };
 
     // Replace the totalBalance calculation with this (in the appropriate place)
-    const totalBalance = safeAccounts.reduce((sum, acc) => {
+    const totalBalance = accounts.reduce((sum, acc) => {
         return sum + getAccountBalance(acc);
     }, 0);
 
