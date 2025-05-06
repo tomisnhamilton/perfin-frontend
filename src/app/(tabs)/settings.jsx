@@ -56,6 +56,7 @@ export default function SettingsScreen() {
         );
     };
 
+
     const confirmDeleteAccount = () => {
         // Second confirmation for added safety
         Alert.alert(
@@ -78,7 +79,6 @@ export default function SettingsScreen() {
                                 [
                                     {
                                         text: "OK",
-                                        onPress: () => router.replace('/login')
                                     }
                                 ]
                             );

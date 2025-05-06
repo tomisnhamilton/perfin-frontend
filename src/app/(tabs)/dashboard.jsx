@@ -94,7 +94,7 @@ const SimpleDonutChart = ({ data, height = 250 }) => {
     ];
 
     return (
-        <View className="mt-4" style={{ height }}>
+        <View className="mt-4 " style={{ height }} >
             <View className="flex-row flex-wrap justify-center mb-4">
                 {data.slice(0, 5).map((item, index) => {
                     const percentage = ((item.y / total) * 100).toFixed(1);
@@ -170,7 +170,7 @@ const RecentTransactionsSection = ({ transactions, router }) => {
     };
 
     return (
-        <Card className="mb-4 rounded-xl overflow-hidden shadow-sm">
+        <Card className="mb-4 rounded-xl overflow-hidden shadow-sm ">
             <TouchableOpacity
                 className="p-4"
                 onPress={() => router.push('/(tabs)/transactions')}
@@ -281,7 +281,7 @@ export default function DashboardScreen() {
     if (safeAccounts.length === 0 && !loading) {
         return (
             <ScrollView
-                className="p-4"
+                className="p-4 bg-neutral-100 dark:bg-gray-700"
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
@@ -291,7 +291,7 @@ export default function DashboardScreen() {
                         <View className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-800 items-center justify-center mb-4">
                             <Ionicons name="wallet-outline" size={36} color={isDarkMode ? '#93c5fd' : '#3b82f6'} />
                         </View>
-                        <Text className="text-xl text-center font-bold mb-4">Welcome to PerFin!</Text>
+                        <Text className="text-xl text-center font-bold mb-4 text-gray-700 dark:text-gray-200">Welcome to PerFin!</Text>
                         <Text className="text-center mb-6 text-gray-600 dark:text-gray-400">
                             No financial accounts connected yet. Connect your bank to see your financial data.
                         </Text>
